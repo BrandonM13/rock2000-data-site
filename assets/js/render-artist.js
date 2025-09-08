@@ -12,15 +12,13 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
     return;
   }
 
-  const yearsAll = Array.from(state.allYears).sort((a,b)=>b-a);
+  const yearsAll = Array.from(state.allYears).sort((a,b)=>b-a); // latest first (e.g., 2025, 2024, …)
   const latest = yearsAll[0];
   const prev   = yearsAll.find(y => y < latest);
 
   const songs = Array.from(songsMap.values()).sort((a,b)=> a.label.localeCompare(b.label));
 
-  // Collect values for independent sections:
-  //  - Change column = fixed colors (no stats needed)
-  //  - Shared heatmap (Best, Avg, Year grid) → single min/max across ALL those values
+  // Shared heatmap values (Best, Avg, and all year cells)
   const allHeatVals = [];
 
   const enriched = songs.map(sRec => {
@@ -29,12 +27,12 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
     const best  = Math.min(...ranks);
     const avg   = Math.round(ranks.reduce((a,b)=>a+b,0)/ranks.length);
 
-    // Change logic
+    // Change logic (fixed colors)
     const latestRank = sRec.years.get(latest);
     const prevRank   = prev!=null ? sRec.years.get(prev) : undefined;
     let changeDisplay = '';
     if (latestRank == null) {
-      changeDisplay = '';
+      changeDisplay = ''; // blank if not in latest year
     } else if (prevRank == null) {
       const hadEarlier = years.some(y => y < latest);
       const hadPrevYear = years.includes(prev);
@@ -45,51 +43,51 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
       changeDisplay = (diff === 0) ? '-' : diff;
     }
 
-    // feed shared heatmap stats
     allHeatVals.push(...ranks, best, avg);
-
     return { label: sRec.label, yearsMap: sRec.years, best, avg, changeDisplay };
   });
 
-  // Single min/max for the entire heatmap section
   const heatMin = Math.min(...allHeatVals);
   const heatMax = Math.max(...allHeatVals);
 
-  // Header (borders + alignment)
-  const hdrYears = yearsAll.map(y=>`<th class="px-2 py-1 text-center border border-black">${y}</th>`).join('');
+  // Header (ALL CAPS) + borders
+  const hdrYears = yearsAll
+    .map(y => `<th class="px-2 py-1 text-center border border-black">${y}</th>`)
+    .join('');
+
   const thead = `
     <thead class="bg-gray-100 sticky top-0">
       <tr>
-        <th class="px-2 py-1 text-left  border border-black">Song</th>
-        <th class="px-2 py-1 text-center border border-black">Change</th>
-        <th class="px-2 py-1 text-center border border-black">Best</th>
-        <th class="px-2 py-1 text-center border border-black">Average</th>
+        <th class="px-2 py-1 text-left  border border-black border-r-4">SONG</th>
+        <th class="px-2 py-1 text-center border border-black">CHANGE</th>
+        <th class="px-2 py-1 text-center border border-black">BEST</th>
+        <th class="px-2 py-1 text-center border border-black border-r-4">AVERAGE</th>
         ${hdrYears}
       </tr>
     </thead>`;
 
   const rowsHtml = enriched.map(row => {
-    // Change = fixed colors
+    // Change = fixed palette
     const { bg: changeBG, color: changeColor } = getChangeStyle(row.changeDisplay);
     const changeTxt = (row.changeDisplay === '') ? '' : row.changeDisplay;
 
-    // Best/Avg use shared heatmap
+    // Shared heatmap for Best/Avg/Years: green -> white -> red
     const bestBG = scaleGreenRed(row.best, heatMin, heatMax);
     const avgBG  = scaleGreenRed(row.avg,  heatMin, heatMax);
 
-    // Year cells use the same shared heatmap
+    // Year cells (centered, shared heatmap)
     const cellsYears = yearsAll.map(y => {
-      const v = row.yearsMap.get(y);
+      const v  = row.yearsMap.get(y);
       const bg = (v==null) ? '' : scaleGreenRed(v, heatMin, heatMax);
       const txt = (v==null) ? '' : v;
       return `<td class="px-2 py-1 text-center border border-black" style="background:${bg}; color:#000">${txt}</td>`;
     }).join('');
 
     return `<tr>
-      <td class="px-2 py-1 text-left  border border-black">${row.label}</td>
+      <td class="px-2 py-1 text-left whitespace-nowrap border border-black border-r-4">${row.label}</td>
       <td class="px-2 py-1 text-center border border-black" style="background:${changeBG}; color:${changeColor}">${changeTxt}</td>
       <td class="px-2 py-1 text-center border border-black" style="background:${bestBG}; color:#000">${row.best}</td>
-      <td class="px-2 py-1 text-center border border-black" style="background:${avgBG};  color:#000">${row.avg}</td>
+      <td class="px-2 py-1 text-center border border-black border-r-4" style="background:${avgBG}; color:#000">${row.avg}</td>
       ${cellsYears}
     </tr>`;
   }).join('');
