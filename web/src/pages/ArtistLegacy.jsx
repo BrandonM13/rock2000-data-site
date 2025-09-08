@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { mountArtistLegacy } from '../legacy/artist/init-artist';
+import '../styles/artist-legacy-dark.css'; // dark-mode overrides for legacy table
 
 export default function ArtistLegacy() {
   const [params] = useSearchParams();
@@ -47,8 +48,8 @@ export default function ArtistLegacy() {
           </div>
 
           {/* mounts expected by legacy renderer */}
-          <div id="artistSummary" className="mt-4 text-sm text-neutral-200"></div>
-          <div id="artistTable" className="mt-3 text-neutral-100"></div>
+          <div id="artistSummary" className="mt-4 text-sm"></div>
+          <div id="artistTable" className="mt-3"></div>
         </div>
 
         <p className="mt-6 text-xs text-neutral-400">

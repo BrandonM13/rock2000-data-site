@@ -1,0 +1,48 @@
+/* Dark-mode overrides scoped to legacy renderer mounts */
+#artistSummary, #artistTable {
+  color: #e5e7eb; /* neutral-200 */
+}
+
+/* Borders for table */
+#artistTable table {
+  border-collapse: collapse;
+}
+#artistTable td, #artistTable th {
+  border-color: #3f3f46 !important; /* neutral-700 */
+}
+
+/* Invert explicit white/black backgrounds used by legacy renderer */
+#artistSummary [style*="background: white"],
+#artistSummary [style*="background-color: white"],
+#artistSummary [style*="background:#fff"],
+#artistSummary [style*="background-color:#fff"],
+#artistTable [style*="background: white"],
+#artistTable [style*="background-color: white"],
+#artistTable [style*="background:#fff"],
+#artistTable [style*="background-color:#fff"] {
+  background-color: #111 !important; /* neutral-900-ish */
+  color: #ffffff !important;
+}
+
+#artistSummary [style*="background: black"],
+#artistSummary [style*="background-color: black"],
+#artistSummary [style*="background:#000"],
+#artistSummary [style*="background-color:#000"],
+#artistTable [style*="background: black"],
+#artistTable [style*="background-color: black"],
+#artistTable [style*="background:#000"],
+#artistTable [style*="background-color:#000"] {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Make sure first column (song titles) stays legible even if legacy leaves it unstyled */
+#artistTable tr td:first-child {
+  color: #e5e7eb !important;
+}
+
+/* Bold/header-like cells */
+#artistTable [style*="font-weight:bold"],
+#artistSummary [style*="font-weight:bold"] {
+  color: #e5e7eb !important;
+}
