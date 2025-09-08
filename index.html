@@ -3,256 +3,194 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rock 2000 – Search</title>
-  <!-- Tailwind (CDN, free) -->
+  <title>Rock 2000 – Artist Search</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style> th, td { border-bottom: 1px solid #eee; } </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
-  <div class="max-w-5xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-4">Rock 2000 – Search</h1>
+  <main class="max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-2">Rock 2000 – Artist Search</h1>
+    <p class="text-sm text-gray-600 mb-4">Exact match only (for now). Reads from your Google Sheet via GViz JSON.</p>
 
-    <div class="grid md:grid-cols-3 gap-4">
-      <!-- Song Search -->
-      <section class="bg-white rounded-2xl shadow p-4">
-        <h2 class="text-xl font-semibold mb-2">Song Search</h2>
-        <label class="block text-sm mb-1">Song title</label>
-        <input id="songTitle" class="w-full border rounded px-3 py-2 mb-2" placeholder="e.g., WEATHER WITH YOU" />
-        <label class="block text-sm mb-1">Artist</label>
-        <input id="songArtist" class="w-full border rounded px-3 py-2 mb-3" placeholder="e.g., CROWDED HOUSE" />
-        <button id="songBtn" class="w-full rounded-2xl px-4 py-2 bg-black text-white">Search</button>
-        <div id="songResult" class="mt-3 text-sm"></div>
-      </section>
-
-      <!-- Artist Search -->
-      <section class="bg-white rounded-2xl shadow p-4">
-        <h2 class="text-xl font-semibold mb-2">Artist Search</h2>
-        <label class="block text-sm mb-1">Artist</label>
-        <input id="artistName" class="w-full border rounded px-3 py-2 mb-3" placeholder="e.g., CROWDED HOUSE" />
-        <button id="artistBtn" class="w-full rounded-2xl px-4 py-2 bg-black text-white">Search</button>
-        <div id="artistResult" class="mt-3 text-sm"></div>
-      </section>
-
-      <!-- Rank Search -->
-      <section class="bg-white rounded-2xl shadow p-4">
-        <h2 class="text-xl font-semibold mb-2">Search by Rank</h2>
-        <label class="block text-sm mb-1">Year</label>
-        <input id="rankYear" class="w-full border rounded px-3 py-2 mb-2" placeholder="e.g., 2025" />
-        <label class="block text-sm mb-1">Rank #</label>
-        <input id="rankNumber" class="w-full border rounded px-3 py-2 mb-3" placeholder="e.g., 1463" />
-        <button id="rankBtn" class="w-full rounded-2xl px-4 py-2 bg-black text-white">Search</button>
-        <div id="rankResult" class="mt-3 text-sm"></div>
-      </section>
-    </div>
-
-    <p class="mt-6 text-xs text-gray-500">Zero‑cost static site. Data live‑fetched from Google Sheets (read‑only).</p>
-  </div>
+    <section class="bg-white rounded-2xl shadow p-4">
+      <div class="flex flex-col md:flex-row gap-3 items-end">
+        <div class="flex-1">
+          <label class="block text-sm mb-1">Artist</label>
+          <input id="artistName" class="w-full border rounded px-3 py-2" placeholder="e.g., IRON MAIDEN" />
+        </div>
+        <button id="artistBtn" class="rounded-2xl px-4 py-2 bg-black text-white">Search</button>
+      </div>
+      <div id="status" class="mt-3 text-xs text-gray-500">Loading…</div>
+      <div id="artistSummary" class="mt-4 text-sm"></div>
+      <div id="artistTable" class="mt-4 text-sm"></div>
+    </section>
+  </main>
 
   <script>
-    // ======= CONFIG =======
-    // 1) Publish your Sheet to the web (File → Share → Publish to web) OR just make it Anyone-with-link Viewer.
-    // 2) Put the Spreadsheet ID here. Example ID: 1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE
-    const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
-    // 3) Set which tab contains your master records (headers required). Example: MASTER_LOG
-    const SHEET_TAB = "MasterCountdownData"; // must match the tab name exactly
+    // ===== CONFIG =====
+    const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE"; // your sheet
+    const TAB_MCD = "MasterCountdownData"; // tall table: YEAR, RANK, KEY = SONG|ARTIST, SONGS, ARTISTS
 
-    // Expected headers (case-insensitive). Any extra headers are ignored.
-    // We'll map them by name so your column order can vary.
+    // Header synonyms (case-insensitive; includes plurals and special KEY header)
     const EXPECTED = {
-      year: ["year", "release_year", "yr"],
-      rank: ["rank", "position"],
-      song: ["song", "title", "song_title", "all_caps_title", "all caps title"],
-      artist: ["artist", "artist_name", "all_caps_artist", "all caps artist"],
-      key: ["key", "master_key", "song|artist", "song_artist_key"],
-      change: ["change"],
-      album: ["album"],
-      duration: ["duration", "duration (mm:ss)", "mm:ss", "duration_ms", "duration (ms)"]
+      year:   ["year", "yr"],
+      rank:   ["rank", "position"],
+      song:   ["songs", "song", "title", "song_title", "all_caps_title", "all caps title"],
+      artist: ["artists", "artist", "artist_name", "all_caps_artist", "all caps artist"],
+      key:    ["key", "master_key", "key = song|artist", "song|artist", "song_artist_key"],
     };
 
-    // ======= UTIL: fetch & parse GViz JSON =======
-    async function fetchSheet(sheetName) {
+    // ===== Helpers =====
+    function norm(s){
+      return (s||"").toString().normalize("NFKD").toUpperCase().replace(/&/g,"AND").replace(/["'`]/g,"").replace(/\s+/g," ").trim();
+    }
+    async function fetchSheet(sheetName){
       const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
       const res = await fetch(url, { cache: "no-store" });
       const text = await res.text();
       const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
-      const cols = json.table.cols.map(c => (c.label || c.id || "").trim());
-      const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? c.v : "")));
+      const cols = json.table.cols.map(c => (c.label || c.id || "").toString().trim());
+      const rows = (json.table.rows||[]).map(r => (r.c||[]).map(c => c? c.v: ""));
       return { cols, rows };
     }
-
-    function indexOfHeader(cols, candidates) {
-      const lower = cols.map(c => c.toString().trim().toLowerCase());
-      for (const cand of candidates) {
-        const i = lower.indexOf(cand);
-        if (i !== -1) return i;
-      }
+    function findHeader(cols, candidates){
+      const lower = cols.map(c=>c.toString().trim().toLowerCase());
+      for(const cand of candidates){ const i = lower.indexOf(cand); if(i!==-1) return i; }
       return -1;
     }
 
-    function normalize(s) {
-      return (s || "")
-        .toString()
-        .normalize("NFKD")
-        .toUpperCase()
-        .replace(/&/g, "AND")
-        .replace(/['"`]/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
+    // ===== Data =====
+    let ARTIST_INDEX = new Map(); // artist -> { songs: Map(song -> {years: Map(year->rank)}) }
+    let ALL_YEARS = new Set();
 
-    function mmssToSeconds(mmss) {
-      if (typeof mmss === "number") return mmss; // already numeric (ms or s)
-      const m = /^(\d{1,2}):(\d{2})$/.exec(String(mmss || "").trim());
-      if (!m) return null;
-      return Number(m[1]) * 60 + Number(m[2]);
-    }
+    async function load(){
+      const status = document.getElementById('status');
+      status.textContent = 'Loading MasterCountdownData…';
+      const { cols, rows } = await fetchSheet(TAB_MCD);
 
-    function secondsToMMSS(secs) {
-      if (secs == null || isNaN(secs)) return "";
-      const m = Math.floor(secs / 60);
-      const s = Math.floor(secs % 60);
-      return `${m}:${s.toString().padStart(2, "0")}`;
-    }
+      const iYear = findHeader(cols, EXPECTED.year);
+      const iRank = findHeader(cols, EXPECTED.rank);
+      const iKey  = findHeader(cols, EXPECTED.key);
+      const iSong = findHeader(cols, EXPECTED.song);
+      const iArt  = findHeader(cols, EXPECTED.artist);
 
-    function statsForEntries(entries) {
-      if (!entries.length) return null;
-      const years = entries.map(e => Number(e.year)).filter(n => !isNaN(n));
-      const ranks = entries.map(e => Number(e.rank)).filter(n => !isNaN(n));
-      const mostRecent = years.length ? Math.max(...years) : "";
-      const best = ranks.length ? Math.min(...ranks) : null; // lower rank number is better
-      const worst = ranks.length ? Math.max(...ranks) : null;
-      const avg = ranks.length ? Math.round(ranks.reduce((a,b)=>a+b,0)/ranks.length) : null;
-      return { mostRecent, best, worst, avg, total: entries.length };
-    }
-
-    // ======= LOAD + BUILD INDEX =======
-    let DATA = [];
-    let INDEX_BY_KEY = new Map(); // KEY: TITLE|ARTIST → array of rows
-    let INDEX_BY_ARTIST = new Map();
-    let INDEX_BY_YEAR_RANK = new Map(); // `${year}|${rank}` → row
-
-    async function loadData() {
-      const { cols, rows } = await fetchSheet(SHEET_TAB);
-      const iYear   = indexOfHeader(cols, EXPECTED.year);
-      const iRank   = indexOfHeader(cols, EXPECTED.rank);
-      const iSong   = indexOfHeader(cols, EXPECTED.song);
-      const iArtist = indexOfHeader(cols, EXPECTED.artist);
-      const iChange = indexOfHeader(cols, EXPECTED.change);
-      const iAlbum  = indexOfHeader(cols, EXPECTED.album);
-      const iDur    = indexOfHeader(cols, EXPECTED.duration);
-
-      DATA = rows.map(r => ({
-        year:   iYear   === -1 ? "" : r[iYear],
-        rank:   iRank   === -1 ? "" : r[iRank],
-        song:   iSong   === -1 ? "" : r[iSong],
-        artist: iArtist === -1 ? "" : r[iArtist],
-        change: iChange === -1 ? "" : r[iChange],
-        album:  iAlbum  === -1 ? "" : r[iAlbum],
-        duration: iDur  === -1 ? "" : r[iDur],
-      })).filter(x => x.song || x.artist);
-
-      // Build indexes
-      INDEX_BY_KEY.clear();
-      INDEX_BY_ARTIST.clear();
-      INDEX_BY_YEAR_RANK.clear();
-
-      for (const row of DATA) {
-        const key = `${normalize(row.song)}|${normalize(row.artist)}`;
-        if (!INDEX_BY_KEY.has(key)) INDEX_BY_KEY.set(key, []);
-        INDEX_BY_KEY.get(key).push(row);
-
-        const a = normalize(row.artist);
-        if (!INDEX_BY_ARTIST.has(a)) INDEX_BY_ARTIST.set(a, []);
-        INDEX_BY_ARTIST.get(a).push(row);
-
-        const yr = String(row.year).trim();
-        const rk = String(row.rank).trim();
-        if (yr && rk) INDEX_BY_YEAR_RANK.set(`${yr}|${rk}`, row);
+      if(iYear===-1 || iRank===-1 || (iKey===-1 && (iSong===-1 || iArt===-1)) ){
+        status.textContent = `Could not find headers. Detected: [${cols.join(', ')}]`;
+        throw new Error('Header mapping failed');
       }
+
+      ARTIST_INDEX.clear();
+      ALL_YEARS = new Set();
+
+      for(const r of rows){
+        const year = r[iYear];
+        const rank = r[iRank];
+        if(year==="" || rank==="") continue;
+        ALL_YEARS.add(Number(year));
+
+        let song = iSong!==-1 ? r[iSong] : "";
+        let artist = iArt!==-1 ? r[iArt] : "";
+        if((!song || !artist) && iKey!==-1 && r[iKey]){
+          const parts = String(r[iKey]).split('|');
+          song = song || (parts[0]||"");
+          artist = artist || (parts[1]||"");
+        }
+        if(!(song||artist)) continue;
+
+        const aKey = norm(artist);
+        const sKey = norm(song);
+        if(!ARTIST_INDEX.has(aKey)) ARTIST_INDEX.set(aKey, { songs: new Map() });
+        const bucket = ARTIST_INDEX.get(aKey);
+        if(!bucket.songs.has(sKey)) bucket.songs.set(sKey, { song, years: new Map() });
+        const sRec = bucket.songs.get(sKey);
+        sRec.years.set(Number(year), Number(rank));
+      }
+
+      const yrs = Array.from(ALL_YEARS).sort((a,b)=>a-b);
+      status.textContent = `Loaded ${rows.length} rows · Years ${yrs[0]}–${yrs[yrs.length-1]} · Artists: ${ARTIST_INDEX.size}`;
     }
 
-    // ======= UI WIRING =======
-    function renderSong(entries, el) {
-      if (!entries || !entries.length) { el.innerHTML = `<div class="text-gray-500">No matches</div>`; return; }
-      const s = statsForEntries(entries);
-      const any = entries[0];
-      const durSecs = mmssToSeconds(any.duration);
-      const dur = durSecs ? secondsToMMSS(durSecs) : (any.duration || "");
-      el.innerHTML = `
-        <div class="font-medium">${any.song} by ${any.artist}</div>
-        <div class="mt-1">Album: <span class="font-mono">${any.album || ""}</span></div>
-        <div>Most Recent: <strong>${s.mostRecent || ""}</strong></div>
-        <div>Highest (best) Rank: <strong>#${s.best ?? ""}</strong></div>
-        <div>Lowest Rank: <strong>#${s.worst ?? ""}</strong></div>
-        <div>Average Ranking: <strong>#${s.avg ?? ""}</strong></div>
-        <div>Total Appearances: <strong>${s.total}</strong></div>
-        <div>Duration (mm:ss): <strong>${dur}</strong></div>
-      `;
+    function enrichSongRecord(sRec){
+      const years = Array.from(sRec.years.keys()).sort((a,b)=>a-b);
+      const ranks = years.map(y=>sRec.years.get(y));
+      const best = Math.min(...ranks);
+      const avg = Math.round(ranks.reduce((a,b)=>a+b,0)/ranks.length);
+      let change = "";
+      if(years.length>=2){
+        const curr = sRec.years.get(years[years.length-1]);
+        const prev = sRec.years.get(years[years.length-2]);
+        if(curr!=null && prev!=null) change = prev - curr; // positive = improved
+      }
+      return { years, best, avg, change };
     }
 
-    function renderArtist(entries, el) {
-      if (!entries || !entries.length) { el.innerHTML = `<div class="text-gray-500">No matches</div>`; return; }
-      const s = statsForEntries(entries);
-      entries.sort((a,b)=> (Number(a.year)||0) - (Number(b.year)||0));
-      const rows = entries.map(e => `<tr>
-        <td class="px-2 py-1">${e.year}</td>
-        <td class="px-2 py-1">${e.rank}</td>
-        <td class="px-2 py-1">${e.change ?? ""}</td>
-        <td class="px-2 py-1">${e.song}</td>
-      </tr>`).join("");
-      el.innerHTML = `
-        <div class="mb-2">Years: latest <strong>${s.mostRecent || ""}</strong> · Best <strong>#${s.best ?? ""}</strong> · Avg <strong>#${s.avg ?? ""}</strong> · Total <strong>${s.total}</strong></div>
-        <div class="overflow-auto max-h-64 border rounded">
-          <table class="text-xs w-full">
-            <thead class="bg-gray-100 sticky top-0"><tr>
-              <th class="text-left px-2 py-1">Year</th>
-              <th class="text-left px-2 py-1">Rank</th>
-              <th class="text-left px-2 py-1">Change</th>
-              <th class="text-left px-2 py-1">Song</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      `;
-    }
+    function renderArtist(artistRaw){
+      const artist = norm(artistRaw);
+      const mountSummary = document.getElementById('artistSummary');
+      const mountTable = document.getElementById('artistTable');
+      mountSummary.innerHTML = '';
+      mountTable.innerHTML = '';
 
-    function renderRank(entry, el) {
-      if (!entry) { el.innerHTML = `<div class="text-gray-500">No result</div>`; return; }
-      el.innerHTML = `
-        <div class="font-medium">#${entry.rank} in ${entry.year}</div>
-        <div>${entry.song} by <strong>${entry.artist}</strong></div>
-        <div class="text-xs text-gray-600">Album: ${entry.album || ""}</div>
-      `;
-    }
-
-    // Boot
-    (async function init(){
-      try {
-        await loadData();
-      } catch (e) {
-        console.error(e);
-        alert("Failed to load data from Google Sheets. Check SHEET_ID/TAB and Publish settings.");
+      const data = ARTIST_INDEX.get(artist);
+      if(!data){
+        mountSummary.innerHTML = `<div class="text-gray-500">No matches for <strong>${artistRaw}</strong></div>`;
         return;
       }
 
-      document.getElementById('songBtn').onclick = () => {
-        const t = normalize(document.getElementById('songTitle').value);
-        const a = normalize(document.getElementById('songArtist').value);
-        const key = `${t}|${a}`;
-        const entries = INDEX_BY_KEY.get(key) || [];
-        renderSong(entries, document.getElementById('songResult'));
-      };
+      const yearsAll = Array.from(ALL_YEARS).sort((a,b)=>b-a); // descending
+      const songs = Array.from(data.songs.values()).sort((a,b)=> a.song.localeCompare(b.song));
 
+      mountSummary.innerHTML = `Total songs: <strong>${songs.length}</strong>`;
+
+      const hdrYears = yearsAll.map(y=>`<th class="px-2 py-1 text-right">${y}</th>`).join('');
+      const thead = `
+        <thead class="bg-gray-100 sticky top-0">
+          <tr>
+            <th class="text-left px-2 py-1">Song</th>
+            <th class="text-right px-2 py-1">Best</th>
+            <th class="text-right px-2 py-1">Avg</th>
+            <th class="text-right px-2 py-1">Change*</th>
+            ${hdrYears}
+          </tr>
+        </thead>`;
+
+      const rowsHtml = songs.map(sRec => {
+        const { best, avg, change } = enrichSongRecord(sRec);
+        const cellsYears = yearsAll.map(y => {
+          const v = sRec.years.get(y);
+          return `<td class="px-2 py-1 text-right">${v==null?'-':v}</td>`;
+        }).join('');
+        return `<tr>
+          <td class="px-2 py-1">${sRec.song}</td>
+          <td class="px-2 py-1 text-right">${best}</td>
+          <td class="px-2 py-1 text-right">${avg}</td>
+          <td class="px-2 py-1 text-right">${change!==''?change:'-'}</td>
+          ${cellsYears}
+        </tr>`;
+      }).join('');
+
+      mountTable.innerHTML = `
+        <div class="overflow-auto border rounded">
+          <table class="text-xs w-[1200px] min-w-full">
+            ${thead}
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        <div class="text-[11px] text-gray-500 mt-2">*Change = previous year rank − latest year rank (positive means improvement).</div>
+      `;
+    }
+
+    (async function(){
+      try { await load(); }
+      catch (e){
+        console.error(e);
+        document.getElementById('status').textContent = 'Failed to load. Check Publish-to-web + Anyone-viewer + tab names.';
+        return;
+      }
+      document.getElementById('status').textContent = 'Ready.';
       document.getElementById('artistBtn').onclick = () => {
-        const a = normalize(document.getElementById('artistName').value);
-        const entries = INDEX_BY_ARTIST.get(a) || [];
-        renderArtist(entries, document.getElementById('artistResult'));
-      };
-
-      document.getElementById('rankBtn').onclick = () => {
-        const y = String(document.getElementById('rankYear').value).trim();
-        const r = String(document.getElementById('rankNumber').value).trim();
-        const entry = INDEX_BY_YEAR_RANK.get(`${y}|${r}`);
-        renderRank(entry, document.getElementById('rankResult'));
+        const a = document.getElementById('artistName').value;
+        renderArtist(a);
       };
     })();
   </script>
