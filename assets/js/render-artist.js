@@ -1,4 +1,35 @@
 import { state } from './data.js';
+import { norm, scaleGreenRed, scaleChange } from './utils.js';
+
+
+export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
+const aNorm = norm(artistRaw);
+mountSummary.innerHTML = ''; mountTable.innerHTML='';
+
+
+const songsMap = state.artistSongYear.get(aNorm);
+if(!songsMap){
+mountSummary.innerHTML = `<div class="text-gray-500">No matches for <strong>${artistRaw}</strong></div>`;
+return;
+}
+
+
+const yearsAll = Array.from(state.allYears).sort((a,b)=>b-a); // latest first
+const latest = yearsAll[0];
+const prev = yearsAll.find(y => y < latest);
+
+
+const songs = Array.from(songsMap.values()).sort((a,b)=> a.label.localeCompare(b.label));
+
+
+// Gather stats for color scales
+const allRanks = []; const bestVals = []; const avgVals = [];
+let maxAbsChange = 0;
+
+
+const enriched = songs.map(sRec => {
+const years = Array.from(sRec.years.keys()).sort((a,b)=>a-b);
+const ranks = years.map(y => sRec.years.get(y));
 const best = Math.min(...ranks);
 const avg = Math.round(ranks.reduce((a,b)=>a+b,0)/ranks.length);
 
@@ -54,35 +85,4 @@ const bestBG = scaleGreenRed(row.best, minBest, maxBest);
 const avgBG = scaleGreenRed(row.avg, minAvg, maxAvg);
 
 
-const cellsYears = yearsAll.map(y => {
-const v = row.yearsMap.get(y);
-const bg = (v==null) ? '' : scaleGreenRed(v, minRank, maxRank);
-const txt = (v==null) ? '' : v;
-return `<td class="px-2 py-1 text-right" style="background:${bg}">${txt}</td>`;
-}).join('');
-
-
-const changeTxt = (row.changeDisplay===''? '' : row.changeDisplay);
-return `<tr>
-<td class="px-2 py-1">${row.label}</td>
-<td class="px-2 py-1 text-right" style="background:${changeBG}">${changeTxt}</td>
-<td class="px-2 py-1 text-right" style="background:${bestBG}">${row.best}</td>
-<td class="px-2 py-1 text-right" style="background:${avgBG}">${row.avg}</td>
-${cellsYears}
-</tr>`;
-}).join('');
-
-
-// Summary
-mountSummary.innerHTML = `<div class="chip bg-gray-200 inline-block">Total songs: ${songs.length}</div>`;
-
-
-mountTable.innerHTML = `
-<div class="overflow-auto border rounded">
-<table class="text-xs w-[1400px] min-w-full">
-${thead}
-<tbody>${rowsHtml}</tbody>
-</table>
-</div>
-`;
 }

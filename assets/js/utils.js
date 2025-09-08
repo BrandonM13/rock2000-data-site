@@ -1,4 +1,3 @@
-// Utilities (no Sheet knowledge here)
 export function norm(s){
 return (s||"").toString().normalize("NFKD").toUpperCase()
 .replace(/&/g,"AND").replace(/["'`]/g,"").replace(/\s+/g," ").trim();
@@ -8,11 +7,12 @@ const lower = cols.map(c => c.toString().trim().toLowerCase());
 for(const cand of candidates){ const i = lower.indexOf(cand); if(i!==-1) return i; }
 return -1;
 }
-export function hsl(h,s,l){ return `hsl(${h} ${s}% ${l}%)`; }
+// Color helpers (used by artist matrix)
+export const hsl=(h,s,l)=>`hsl(${h} ${s}% ${l}%)`;
 export function scaleGreenRed(value, min, max){
 if(value==null || isNaN(value) || min==null || max==null || min===max) return '';
-const t = Math.max(0, Math.min(1, (value - min) / (max - min))); // 0=best,1=worst
-const hue = 120 - 120 * t; // green->red
+const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
+const hue = 120 - 120 * t; // green -> red
 const sat = 60;
 const light = 88 - 38 * (1 - Math.abs(0.5 - t) * 2);
 return hsl(hue.toFixed(0), sat, light.toFixed(0));

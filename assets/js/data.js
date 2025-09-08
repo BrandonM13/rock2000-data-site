@@ -1,8 +1,15 @@
 import { SHEET_ID, TAB_MCD, EXPECTED } from './config.js';
-const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
-const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? c.v : '')));
-return { cols, rows };
-}
+import { headerIndex, norm } from './utils.js';
+
+
+export const state = {
+allYears: new Set(),
+byKey: new Map(),
+byArtist: new Map(),
+byYearRank: new Map(),
+artistSongYear: new Map(),
+};
+
 
 async function fetchSheet(sheetName){
 const ts = Date.now();
@@ -14,6 +21,7 @@ const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
 const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? c.v : '')));
 return { cols, rows };
 }
+
 
 export async function loadData(statusEl){
 statusEl && (statusEl.textContent = 'Loading…');
@@ -78,8 +86,5 @@ if(!songsMap.has(sN)) songsMap.set(sN, { label: song, years: new Map() });
 songsMap.get(sN).years.set(yr, rk);
 }
 
-
-const yearsAll = Array.from(state.allYears).sort((a,b)=>a-b);
-statusEl && (statusEl.textContent = `Loaded ${rows.length} rows · Years ${yearsAll[0]}–${yearsAll[yearsAll.length-1]} · Artists: ${state.byArtist.size}`);
 
 }
