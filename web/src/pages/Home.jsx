@@ -1,3 +1,4 @@
+// web/src/pages/Home.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -41,11 +42,17 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Placeholders for Song / Rank; we’ll wire them later */}
-        <div className="rounded-2xl bg-neutral-800/60 border border-neutral-700 p-5 shadow-lg opacity-70">
-          <h2 className="text-xl font-medium mb-3">Song Search</h2>
-          <div className="text-neutral-400 text-sm">Coming next.</div>
+        <div className="rounded-2xl bg-neutral-800/60 border border-neutral-700 p-5 shadow-lg">
+          <h2 className="text-xl font-medium mb-3">Live Countdown</h2>
+          <p className="text-neutral-400 text-sm mb-3">Browse a full year’s countdown.</p>
+          <Link
+            to="/live"
+            className="inline-block rounded-xl px-4 py-2 bg-neutral-700 hover:bg-neutral-600 transition"
+          >
+            Open
+          </Link>
         </div>
+
         <div className="rounded-2xl bg-neutral-800/60 border border-neutral-700 p-5 shadow-lg opacity-70">
           <h2 className="text-xl font-medium mb-3">Search by Rank</h2>
           <div className="text-neutral-400 text-sm">Coming next.</div>

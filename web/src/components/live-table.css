@@ -1,0 +1,56 @@
+/* web/src/components/live-table.css */
+.live-wrap { background: transparent; }
+.live-scroll {
+  overflow: auto;
+  max-height: 72vh;
+  border: 1px solid #3f3f46;
+  border-radius: 16px;
+  background: #0b0b0b;
+}
+.live-table thead th { background-color: #0e0e0e !important; }
+.live-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  min-width: 720px;
+  font-size: 14px;
+  color: #e5e7eb;
+}
+.live-table th, .live-table td {
+  border: 1px solid #27272a;
+  padding: 8px 10px;
+  white-space: nowrap;
+  background-clip: padding-box;
+  text-align: left;
+}
+.live-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: .02em;
+  height: var(--hdr-h, 42px);
+}
+.sticky-first-row td {
+  position: sticky;
+  top: var(--hdr-h, 42px);
+  z-index: 2;
+  background: #111;
+  box-shadow: 0 1px 0 #27272a;
+}
+.col-rank   { width: 64px;  text-align: center !important; }
+.col-song   { min-width: 240px; }
+.col-artist { min-width: 200px; }
+.col-year   { width: 80px; text-align: center !important; }
+.col-change { width: 110px; text-align: center !important; }
+.gold-text { color: #f59e0b !important; }
+.chg-pos     { background: #1e7a46; color: #ffffff; text-align:center !important; }
+.chg-neg     { background: #8e1a1a; color: #ffffff; text-align:center !important; }
+.chg-dash    { background: #000000; color: #e5e7eb; text-align:center !important; }
+.chg-debut   { background: #b08900; color: #000000; text-align:center !important; }
+.chg-reentry { background: #000000; color: #f59e0b; text-align:center !important; }
+@media (max-width: 640px){
+  .live-table { font-size: 12px; min-width: 600px; }
+  .col-song { min-width: 180px; white-space: normal; line-height: 1.15; }
+}
