@@ -1,7 +1,7 @@
 import { state } from './data.js';
 import { norm, scaleGreenRed, getChangeStyle } from './utils.js';
 
-export function renderArtistMatrix(artistRaw, mountSummary, mountTable) {
+export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
   const aNorm = norm(artistRaw);
   mountSummary.innerHTML = '';
   mountTable.innerHTML = '';
@@ -12,22 +12,26 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable) {
     return;
   }
 
-  const yearsAll = Array.from(state.allYears).sort((a, b) => b - a);
+  const yearsAll = Array.from(state.allYears).sort((a,b)=>b-a);
   const latest = yearsAll[0];
-  const prev = yearsAll.find(y => y < latest);
+  const prev   = yearsAll.find(y => y < latest);
 
-  const songs = Array.from(songsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+  const songs = Array.from(songsMap.values()).sort((a,b)=> a.label.localeCompare(b.label));
 
-  const allRanks = []; const bestVals = []; const avgVals = [];
+  // Collect values for independent sections:
+  //  - Change column = fixed colors (no stats needed)
+  //  - Shared heatmap (Best, Avg, Year grid) → single min/max across ALL those values
+  const allHeatVals = [];
+
   const enriched = songs.map(sRec => {
-    const years = Array.from(sRec.years.keys()).sort((a, b) => a - b);
+    const years = Array.from(sRec.years.keys()).sort((a,b)=>a-b);
     const ranks = years.map(y => sRec.years.get(y));
     const best  = Math.min(...ranks);
     const avg   = Math.round(ranks.reduce((a,b)=>a+b,0)/ranks.length);
 
+    // Change logic
     const latestRank = sRec.years.get(latest);
     const prevRank   = prev!=null ? sRec.years.get(prev) : undefined;
-
     let changeDisplay = '';
     if (latestRank == null) {
       changeDisplay = '';
@@ -41,52 +45,59 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable) {
       changeDisplay = (diff === 0) ? '-' : diff;
     }
 
-    bestVals.push(best); avgVals.push(avg); for(const v of ranks) allRanks.push(v);
+    // feed shared heatmap stats
+    allHeatVals.push(...ranks, best, avg);
+
     return { label: sRec.label, yearsMap: sRec.years, best, avg, changeDisplay };
   });
 
-  const minRank = Math.min(...allRanks), maxRank = Math.max(...allRanks);
-  const minBest = Math.min(...bestVals), maxBest = Math.max(...bestVals);
-  const minAvg  = Math.min(...avgVals),  maxAvg  = Math.max(...avgVals);
+  // Single min/max for the entire heatmap section
+  const heatMin = Math.min(...allHeatVals);
+  const heatMax = Math.max(...allHeatVals);
 
-  const hdrYears = yearsAll.map(y => `<th class="px-2 py-1 text-right">${y}</th>`).join('');
+  // Header (borders + alignment)
+  const hdrYears = yearsAll.map(y=>`<th class="px-2 py-1 text-center border border-black">${y}</th>`).join('');
   const thead = `
     <thead class="bg-gray-100 sticky top-0">
       <tr>
-        <th class="text-left px-2 py-1">Song</th>
-        <th class="text-right px-2 py-1">Change</th>
-        <th class="text-right px-2 py-1">Best</th>
-        <th class="text-right px-2 py-1">Average</th>
+        <th class="px-2 py-1 text-left  border border-black">Song</th>
+        <th class="px-2 py-1 text-center border border-black">Change</th>
+        <th class="px-2 py-1 text-center border border-black">Best</th>
+        <th class="px-2 py-1 text-center border border-black">Average</th>
         ${hdrYears}
       </tr>
     </thead>`;
 
   const rowsHtml = enriched.map(row => {
+    // Change = fixed colors
     const { bg: changeBG, color: changeColor } = getChangeStyle(row.changeDisplay);
-    const bestBG =  scaleGreenRed(row.best, minBest, maxBest);
-    const avgBG  =  scaleGreenRed(row.avg,  minAvg,  maxAvg);
+    const changeTxt = (row.changeDisplay === '') ? '' : row.changeDisplay;
 
+    // Best/Avg use shared heatmap
+    const bestBG = scaleGreenRed(row.best, heatMin, heatMax);
+    const avgBG  = scaleGreenRed(row.avg,  heatMin, heatMax);
+
+    // Year cells use the same shared heatmap
     const cellsYears = yearsAll.map(y => {
       const v = row.yearsMap.get(y);
-      const bg = (v == null) ? '' : scaleGreenRed(v, minRank, maxRank);
-      const txt = (v == null) ? '' : v;
-      return `<td class="px-2 py-1 text-right" style="background:${bg}; color:#000">${txt}</td>`;
+      const bg = (v==null) ? '' : scaleGreenRed(v, heatMin, heatMax);
+      const txt = (v==null) ? '' : v;
+      return `<td class="px-2 py-1 text-center border border-black" style="background:${bg}; color:#000">${txt}</td>`;
     }).join('');
 
-    const changeTxt = (row.changeDisplay === '') ? '' : row.changeDisplay;
     return `<tr>
-      <td class="px-2 py-1">${row.label}</td>
-      <td class="px-2 py-1 text-right" style="background:${changeBG}; color:${changeColor}">${changeTxt}</td>
-      <td class="px-2 py-1 text-right" style="background:${bestBG}; color:#000">${row.best}</td>
-      <td class="px-2 py-1 text-right" style="background:${avgBG}; color:#000">${row.avg}</td>
+      <td class="px-2 py-1 text-left  border border-black">${row.label}</td>
+      <td class="px-2 py-1 text-center border border-black" style="background:${changeBG}; color:${changeColor}">${changeTxt}</td>
+      <td class="px-2 py-1 text-center border border-black" style="background:${bestBG}; color:#000">${row.best}</td>
+      <td class="px-2 py-1 text-center border border-black" style="background:${avgBG};  color:#000">${row.avg}</td>
       ${cellsYears}
     </tr>`;
   }).join('');
 
   mountSummary.innerHTML = `<div class="inline-block text-xs bg-gray-200 rounded-full px-2 py-1">Total songs: ${songs.length}</div>`;
   mountTable.innerHTML = `
-    <div class="overflow-auto border rounded">
-      <table class="text-xs w-[1400px] min-w-full">
+    <div class="overflow-auto border border-black rounded">
+      <table class="text-xs w-[1400px] min-w-full border-collapse">
         ${thead}
         <tbody>${rowsHtml}</tbody>
       </table>
