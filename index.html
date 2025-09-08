@@ -28,24 +28,25 @@ th, td { border-bottom: 1px solid #eee; }
 </section>
 
 
-<!-- Artist Search (with Live toggle) -->
+<!-- Artist Search -->
 <section class="bg-white rounded-2xl shadow p-4 md:col-span-2">
-<h2 class="text-xl font-semibold mb-2">Artist Search</h2>
-<div class="flex flex-col md:flex-row gap-3 items-end">
-<div class="flex-1">
-<label class="block text-sm mb-1">Artist (exact for now)</label>
-<input id="artistName" class="w-full border rounded px-3 py-2" placeholder="e.g., IRON MAIDEN" />
-</div>
-<button id="artistBtn" class="rounded-2xl px-4 py-2 bg-black text-white">Search</button>
-</div>
-<div class="mt-2 flex items-center gap-3">
-<label class="inline-flex items-center gap-2 text-sm">
-<input id="liveToggle" type="checkbox" class="h-4 w-4" /> Live auto‑update
-</label>
-<span id="status" class="text-xs text-gray-500">Loading…</span>
-<div id="artistSummary" class="mt-4 text-sm"></div>
-<div id="artistTable" class="mt-3 text-sm"></div>
+  <h2 class="text-xl font-semibold mb-2">Artist Search</h2>
 
+  <div class="flex flex-col md:flex-row gap-3 items-end">
+    <div class="flex-1">
+      <!-- Status next to the label -->
+      <label class="block text-sm mb-1 flex items-center gap-2">
+        <span>Artist (exact for now)</span>
+        <span id="status" class="text-xs text-gray-500">Loading…</span>
+      </label>
+      <input id="artistName" class="w-full border rounded px-3 py-2" placeholder="e.g., IRON MAIDEN" />
+    </div>
+    <button id="artistBtn" class="rounded-2xl px-4 py-2 bg-black text-white">Search</button>
+  </div>
+
+  <!-- keep these mounts (no live toggle row anymore) -->
+  <div id="artistSummary" class="mt-4 text-sm"></div>
+  <div id="artistTable" class="mt-3"></div>
 </section>
 
 

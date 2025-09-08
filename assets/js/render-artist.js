@@ -12,13 +12,16 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
     return;
   }
 
-  const yearsAll = Array.from(state.allYears).sort((a,b)=>b-a); // latest first (e.g., 2025, 2024, …)
+  // Years: newest first; omit 2001, 2000, 1999
+  const yearsAll = Array.from(state.allYears)
+    .filter(y => y >= 2002)
+    .sort((a,b)=>b-a);
   const latest = yearsAll[0];
   const prev   = yearsAll.find(y => y < latest);
 
   const songs = Array.from(songsMap.values()).sort((a,b)=> a.label.localeCompare(b.label));
 
-  // Shared heatmap values (Best, Avg, and all year cells)
+  // Collect values for the single shared heatmap (Best/Avg/Years)
   const allHeatVals = [];
 
   const enriched = songs.map(sRec => {
@@ -32,7 +35,7 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
     const prevRank   = prev!=null ? sRec.years.get(prev) : undefined;
     let changeDisplay = '';
     if (latestRank == null) {
-      changeDisplay = ''; // blank if not in latest year
+      changeDisplay = '';
     } else if (prevRank == null) {
       const hadEarlier = years.some(y => y < latest);
       const hadPrevYear = years.includes(prev);
@@ -50,7 +53,7 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
   const heatMin = Math.min(...allHeatVals);
   const heatMax = Math.max(...allHeatVals);
 
-  // Header (ALL CAPS) + borders
+  // Header (ALL CAPS), borders, and non-wrapping change
   const hdrYears = yearsAll
     .map(y => `<th class="px-2 py-1 text-center border border-black">${y}</th>`)
     .join('');
@@ -59,7 +62,7 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
     <thead class="bg-gray-100 sticky top-0">
       <tr>
         <th class="px-2 py-1 text-left  border border-black border-r-4">SONG</th>
-        <th class="px-2 py-1 text-center border border-black">CHANGE</th>
+        <th class="px-2 py-1 text-center border border-black whitespace-nowrap min-w-[96px]">CHANGE</th>
         <th class="px-2 py-1 text-center border border-black">BEST</th>
         <th class="px-2 py-1 text-center border border-black border-r-4">AVERAGE</th>
         ${hdrYears}
@@ -67,15 +70,12 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
     </thead>`;
 
   const rowsHtml = enriched.map(row => {
-    // Change = fixed palette
     const { bg: changeBG, color: changeColor } = getChangeStyle(row.changeDisplay);
     const changeTxt = (row.changeDisplay === '') ? '' : row.changeDisplay;
 
-    // Shared heatmap for Best/Avg/Years: green -> white -> red
     const bestBG = scaleGreenRed(row.best, heatMin, heatMax);
     const avgBG  = scaleGreenRed(row.avg,  heatMin, heatMax);
 
-    // Year cells (centered, shared heatmap)
     const cellsYears = yearsAll.map(y => {
       const v  = row.yearsMap.get(y);
       const bg = (v==null) ? '' : scaleGreenRed(v, heatMin, heatMax);
@@ -85,17 +85,20 @@ export function renderArtistMatrix(artistRaw, mountSummary, mountTable){
 
     return `<tr>
       <td class="px-2 py-1 text-left whitespace-nowrap border border-black border-r-4">${row.label}</td>
-      <td class="px-2 py-1 text-center border border-black" style="background:${changeBG}; color:${changeColor}">${changeTxt}</td>
+      <td class="px-2 py-1 text-center whitespace-nowrap min-w-[96px] border border-black" style="background:${changeBG}; color:${changeColor}">${changeTxt}</td>
       <td class="px-2 py-1 text-center border border-black" style="background:${bestBG}; color:#000">${row.best}</td>
       <td class="px-2 py-1 text-center border border-black border-r-4" style="background:${avgBG}; color:#000">${row.avg}</td>
       ${cellsYears}
     </tr>`;
   }).join('');
 
-  mountSummary.innerHTML = `<div class="inline-block text-xs bg-gray-200 rounded-full px-2 py-1">Total songs: ${songs.length}</div>`;
+  // Top label: TOTAL SONGS (larger, no wrap)
+  const total = `<div class="mb-2 font-semibold text-[19px] whitespace-nowrap">TOTAL SONGS: ${songs.length}</div>`;
+
   mountTable.innerHTML = `
-    <div class="overflow-auto border border-black rounded">
-      <table class="text-xs w-[1400px] min-w-full border-collapse">
+    ${total}
+    <div class="overflow-x-auto bg-white border border-black rounded">
+      <table class="text-[15px] w-[1400px] min-w-full border-collapse">
         ${thead}
         <tbody>${rowsHtml}</tbody>
       </table>

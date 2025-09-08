@@ -1,6 +1,7 @@
 import { loadData } from './data.js';
 import { renderArtistMatrix } from './render-artist.js';
 import { renderSong, renderRank } from './render-song-rank.js';
+import { LIVE_REFRESH_MS } from './config.js';
 
 const statusEl = document.getElementById('status');
 const artistSummary = document.getElementById('artistSummary') || document.getElementById('artistResult');
@@ -14,9 +15,21 @@ function onEnter(id, handler){
   });
 }
 
+let currentArtist = '';
+async function refresh(){
+  try {
+    await loadData(statusEl);
+    statusEl && (statusEl.textContent = 'Ready.');
+    if (currentArtist) renderArtistMatrix(currentArtist, artistSummary, artistTable);
+  } catch (e){
+    console.error(e);
+    statusEl && (statusEl.textContent = 'Failed to load.');
+  }
+}
+
 const handleArtist = () => {
-  const a = document.getElementById('artistName').value;
-  renderArtistMatrix(a, artistSummary, artistTable);
+  currentArtist = document.getElementById('artistName').value;
+  renderArtistMatrix(currentArtist, artistSummary, artistTable);
 };
 const handleSong = () => {
   const t = document.getElementById('songTitle').value;
@@ -30,8 +43,11 @@ const handleRank = () => {
 };
 
 (async function init(){
-  try { await loadData(statusEl); statusEl && (statusEl.textContent = 'Ready.'); }
-  catch (e){ console.error(e); statusEl && (statusEl.textContent = 'Failed to load data.'); return; }
+  await refresh();
+
+  // Always-on live refresh (no UI, pauses when tab hidden)
+  const interval = LIVE_REFRESH_MS || 60000;
+  setInterval(() => { if (!document.hidden) refresh(); }, interval);
 
   // Clicks
   const ab = document.getElementById('artistBtn'); ab && (ab.onclick = handleArtist);
