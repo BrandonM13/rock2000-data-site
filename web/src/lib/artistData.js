@@ -1,9 +1,15 @@
-// web/src/lib/artistData.js (v3: derive song/artist from KEY if missing; keep dark heatmap & change logic)
+// web/src/lib/artistData.js (v4 — use SONG/ARTIST columns only; no KEY fallback)
 import { fetchGviz } from "./gviz";
 
+// Sheet config
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MCD = "MasterCountdownData";
 
+/**
+ * Normalization used for artist/song keys.
+ * Matches previous legacy behavior: uppercase, replace & -> AND,
+ * strip quotes, collapse whitespace.
+ */
 export function norm(s){
   return (s ?? "")
     .toString()
@@ -15,7 +21,7 @@ export function norm(s){
     .trim();
 }
 
-// header matching (case/space/underscore-insensitive)
+/** Case/space/underscore-insensitive column lookup */
 function valueFor(obj, candidates){
   const keys = Object.keys(obj);
   const canon = (k) => k.toString().trim().toLowerCase().replace(/[\s_]+/g, " ");
@@ -26,23 +32,15 @@ function valueFor(obj, candidates){
   }
   return null;
 }
+
+// IMPORTANT: we now read SONGS from col D and ARTISTS from col E (i.e., sheet-provided)
+// so we *do not* derive from KEY anymore.
 const HDR = {
   year:   ["year","release_year","yr"],
   rank:   ["rank","position"],
   song:   ["songs","song","title","song_title","all_caps_title","all caps title","SONGS","TITLE"],
   artist: ["artists","artist","artist_name","all_caps_artist","all caps artist","ARTISTS","ARTIST"],
-  key:    ["key","song|artist","song_artist_key","master key","master_key","key = song|artist"]
 };
-
-function splitKey(raw){
-  if (raw == null) return { song: null, artist: null };
-  const s = String(raw);
-  const i = s.indexOf("|");
-  if (i === -1) return { song: s.trim(), artist: null };
-  const left = s.slice(0, i).trim();
-  const right = s.slice(i+1).trim();
-  return { song: left || null, artist: right || null };
-}
 
 export async function loadArtistData() {
   const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MCD });
@@ -52,22 +50,17 @@ export async function loadArtistData() {
   for (const r of rows) {
     const year = Number(valueFor(r, HDR.year));
     const rank = Number(valueFor(r, HDR.rank));
-    let song = valueFor(r, HDR.song);
-    let artist = valueFor(r, HDR.artist);
-    const keyVal = valueFor(r, HDR.key);
+    const song = valueFor(r, HDR.song);
+    const artist = valueFor(r, HDR.artist);
 
-    // If SONG/ARTIST are missing, derive from KEY = "<song>|<artist>"
-    if ((!song || !artist) && keyVal != null) {
-      const { song: sK, artist: aK } = splitKey(keyVal);
-      if (!song && sK) song = sK;
-      if (!artist && aK) artist = aK;
-    }
-
+    // Skip any row that doesn't provide SONG or ARTIST explicitly.
     if (!year || !rank || !song || !artist) continue;
+
     yearSet.add(year);
     entries.push({ year, rank, song, artist });
   }
 
+  // Build index: ARTIST -> SONG -> [{year, rank}] sorted by year
   const byArtistSong = new Map();
   for (const e of entries) {
     const a = norm(e.artist);
@@ -77,24 +70,24 @@ export async function loadArtistData() {
     if (!m.has(s)) m.set(s, { song: e.song, artist: e.artist, list: [] });
     m.get(s).list.push({ year: e.year, rank: e.rank });
   }
+
   for (const [, m] of byArtistSong) {
     for (const [, obj] of m) obj.list.sort((a, b) => a.year - b.year);
   }
 
-  const years = Array.from(yearSet).filter(y => y >= 2002).sort((a,b)=>b-a); // newest -> oldest
+  // Render years (newest -> oldest), 2002+
+  const years = Array.from(yearSet).filter(y => y >= 2002).sort((a,b)=>b-a);
   return { byArtistSong, years };
 }
 
-// CHANGE column logic based on currentYear vs previousYear
+// CHANGE column logic (current vs previous year)
 function computeChange(map, currentYear, previousYear){
   const hasCurr = map.has(currentYear);
-  if (!hasCurr) return ""; // no current-year entry => blank change
+  if (!hasCurr) return "";
   if (map.has(previousYear)) {
     const diff = map.get(previousYear) - map.get(currentYear); // +ve improved
     return diff === 0 ? "-" : diff;
   }
-  // present this year but missing last year:
-  // DEBUT if never appeared before, else RE-ENTRY
   const hadBefore = [...map.keys()].some(y => y < currentYear);
   return hadBefore ? "RE-ENTRY" : "DEBUT";
 }
@@ -113,23 +106,21 @@ export function computeRowsForArtist(byArtistSong, artistQuery, years) {
     const map = new Map(list.map(x => [x.year, x.rank]));
 
     const change = computeChange(map, currentYear, previousYear);
-    const presentRanks = list.map(x => x.rank);
-    const best = presentRanks.length ? Math.min(...presentRanks) : "";
-    const avg  = presentRanks.length ? Math.round(presentRanks.reduce((a,b)=>a+b,0) / presentRanks.length) : "";
+    const ranks = list.map(x => x.rank);
+    const best = ranks.length ? Math.min(...ranks) : "";
+    const avg  = ranks.length ? Math.round(ranks.reduce((a,b)=>a+b,0) / ranks.length) : "";
 
     const cells = years.map(y => (map.has(y) ? map.get(y) : ""));
 
     rows.push({ song: obj.song, artist: obj.artist, change, best, average: avg, cells });
   }
 
-  // Sort by Song title (A->Z)
+  // Sort by Song title (A→Z)
   rows.sort((a,b)=> a.song.localeCompare(b.song));
-
   return { total: rows.length, rows };
 }
 
-// === Color helpers ===
-// Darker palette: green -> BLACK -> red
+// === Colors (dark): green -> black -> red ===
 function clamp01(x){ return Math.max(0, Math.min(1,x)); }
 function lerp(a,b,t){ return a + (b-a)*t; }
 function hexToRgb(h){
@@ -140,31 +131,19 @@ function rgbToHex({r,g,b}){
   const to = (n)=>Math.max(0,Math.min(255,Math.round(n))).toString(16).padStart(2,'0');
   return `#${to(r)}${to(g)}${to(b)}`;
 }
-
-// darker endpoints
-const DARK_GREEN = '#1e7a46'; // deep green
-const DARK_RED   = '#8e1a1a'; // deep red
+const DARK_GREEN = '#1e7a46';
+const DARK_RED   = '#8e1a1a';
 const BLACK      = '#000000';
-
 function mix(c1, c2, t){
   const a = hexToRgb(c1), b = hexToRgb(c2);
   return rgbToHex({ r: lerp(a.r,b.r,t), g: lerp(a.g,b.g,t), b: lerp(a.b,b.b,t) });
 }
-
 export function heatForRank(rank){
   if (!rank || isNaN(rank)) return "";
-  const t = clamp01((rank - 1) / (2000 - 1)); // 0..1
-  if (t <= 0.5){
-    // green -> black
-    const tt = t/0.5;
-    return mix(DARK_GREEN, BLACK, tt);
-  } else {
-    // black -> red
-    const tt = (t-0.5)/0.5;
-    return mix(BLACK, DARK_RED, tt);
-  }
+  const t = clamp01((rank - 1) / (2000 - 1));
+  if (t <= 0.5){ return mix(DARK_GREEN, BLACK, t/0.5); }
+  return mix(BLACK, DARK_RED, (t-0.5)/0.5);
 }
-
 export function colorForChange(val){
   if (val === "") return { bg: "", color: "#e5e7eb" };
   if (val === "-") return { bg: "#000000", color: "#e5e7eb" };
