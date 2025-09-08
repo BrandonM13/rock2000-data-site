@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { HashRouter as Router, Routes, Route, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { searchArtist } from "./lib/artistSearch";
+import Home from './pages/Home';
+import ArtistLegacy from './pages/ArtistLegacy';
+
 
 // Types (JS doc style for clarity)
 /** @typedef {{rank:number,title:string,artist:string,year:number,change?:string|number}} ResultRow */
@@ -146,9 +149,10 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/results" element={<ResultsPage />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/artist" element={<ArtistLegacy />} />
       </Routes>
     </Router>
   );
 }
+
