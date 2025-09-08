@@ -1,0 +1,47 @@
+/* web/src/components/heat-table.css (v2) */
+.heat-wrap { background: transparent; }
+.heat-scroll {
+  overflow: auto;
+  border: 1px solid #3f3f46;
+  border-radius: 16px;
+  background: #0b0b0b;
+}
+
+.heat-table {
+  border-collapse: collapse;
+  width: max(100%, 1400px);
+  font-size: 14px;
+  color: #e5e7eb;
+}
+
+.heat-table th, .heat-table td {
+  border: 1px solid #27272a;
+  padding: 6px 8px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.col-song {
+  text-align: left !important;
+  min-width: 280px;
+  max-width: 520px;
+}
+
+.song-cell {
+  font-weight: 400 !important;       /* not bold */
+  color: #f4f4f5 !important;
+  background: #0b0b0b !important;
+}
+
+.num-cell {
+  color: #ffffff;                    /* white text for dark heat cells */
+}
+
+.sticky-top { position: sticky; top: 0; background: #111; z-index: 1; }
+.sticky-left { position: sticky; left: 0; background: #111; z-index: 1; }
+.z2 { z-index: 2; }
+
+.heat-table thead th {
+  font-weight: 600;
+  letter-spacing: .02em;
+}

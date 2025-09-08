@@ -1,48 +1,75 @@
-/* Dark-mode overrides scoped to legacy renderer mounts */
-#artistSummary, #artistTable {
-  color: #e5e7eb; /* neutral-200 */
+/* Rock2000 legacy renderer – dark mode fixes (scoped) */
+#artistSummary, #artistTable { color: #e5e7eb !important; }
+
+/* Borders */
+#artistTable table { border-collapse: collapse; }
+#artistTable td, #artistTable th { border: 1px solid #3f3f46 !important; } /* neutral-700 */
+
+/* Ensure the first column (song titles) has dark bg + light text for contrast */
+#artistTable tr td:first-child {
+  background-color: #111 !important; /* near neutral-900 */
+  color: #e5e7eb !important;
 }
 
-/* Borders for table */
-#artistTable table {
-  border-collapse: collapse;
-}
-#artistTable td, #artistTable th {
-  border-color: #3f3f46 !important; /* neutral-700 */
+/* Header cells if legacy uses <th> */
+#artistTable th {
+  background-color: #111 !important;
+  color: #e5e7eb !important;
 }
 
-/* Invert explicit white/black backgrounds used by legacy renderer */
+/* === Inversions for inline backgrounds set by legacy code === */
+/* Pure WHITE */
 #artistSummary [style*="background: white"],
 #artistSummary [style*="background-color: white"],
 #artistSummary [style*="background:#fff"],
-#artistSummary [style*="background-color:#fff"],
+#artistSummary [style*="background:#FFF"],
+#artistSummary [style*="#ffffff"],
+#artistSummary [style*="#FFFFFF"],
+#artistSummary [style*="rgb(255, 255, 255)"],
+#artistSummary [style*="rgb(255,255,255)"],
 #artistTable [style*="background: white"],
 #artistTable [style*="background-color: white"],
 #artistTable [style*="background:#fff"],
-#artistTable [style*="background-color:#fff"] {
-  background-color: #111 !important; /* neutral-900-ish */
+#artistTable [style*="background:#FFF"],
+#artistTable [style*="#ffffff"],
+#artistTable [style*="#FFFFFF"],
+#artistTable [style*="rgb(255, 255, 255)"],
+#artistTable [style*="rgb(255,255,255)"] {
+  background-color: #111 !important;
   color: #ffffff !important;
 }
 
+/* Very light GREYS often used for title column in legacy (#eee, #f0f0f0, #f5f5f5) */
+#artistSummary [style*="#eee"], #artistSummary [style*="#EEE"],
+#artistSummary [style*="#f0f0f0"], #artistSummary [style*="#F0F0F0"],
+#artistSummary [style*="#f5f5f5"], #artistSummary [style*="#F5F5F5"],
+#artistSummary [style*="rgb(238, 238, 238)"], #artistSummary [style*="rgb(240, 240, 240)"], #artistSummary [style*="rgb(245, 245, 245)"],
+#artistTable [style*="#eee"], #artistTable [style*="#EEE"],
+#artistTable [style*="#f0f0f0"], #artistTable [style*="#F0F0F0"],
+#artistTable [style*="#f5f5f5"], #artistTable [style*="#F5F5F5"],
+#artistTable [style*="rgb(238, 238, 238)"], #artistTable [style*="rgb(240, 240, 240)"], #artistTable [style*="rgb(245, 245, 245)"] {
+  background-color: #18181b !important; /* neutral-900/800 */
+  color: #f4f4f5 !important; /* neutral-100 */
+}
+
+/* Pure BLACK */
 #artistSummary [style*="background: black"],
 #artistSummary [style*="background-color: black"],
 #artistSummary [style*="background:#000"],
-#artistSummary [style*="background-color:#000"],
+#artistSummary [style*="background:#000000"],
+#artistSummary [style*="#000000"],
+#artistSummary [style*="rgb(0, 0, 0)"],
+#artistSummary [style*="rgb(0,0,0)"],
 #artistTable [style*="background: black"],
 #artistTable [style*="background-color: black"],
 #artistTable [style*="background:#000"],
-#artistTable [style*="background-color:#000"] {
+#artistTable [style*="background:#000000"],
+#artistTable [style*="#000000"],
+#artistTable [style*="rgb(0, 0, 0)"],
+#artistTable [style*="rgb(0,0,0)"] {
   background-color: #ffffff !important;
   color: #000000 !important;
 }
 
-/* Make sure first column (song titles) stays legible even if legacy leaves it unstyled */
-#artistTable tr td:first-child {
-  color: #e5e7eb !important;
-}
-
-/* Bold/header-like cells */
-#artistTable [style*="font-weight:bold"],
-#artistSummary [style*="font-weight:bold"] {
-  color: #e5e7eb !important;
-}
+/* If legacy dims titles via opacity, you can uncomment to force full contrast */
+/* #artistTable [style*="opacity"] { opacity: 1 !important; } */
