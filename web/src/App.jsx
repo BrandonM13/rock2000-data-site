@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { HashRouter as Router, Routes, Route, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { searchArtist } from "./lib/artistSearch";
 
 // Types (JS doc style for clarity)
 /** @typedef {{rank:number,title:string,artist:string,year:number,change?:string|number}} ResultRow */
@@ -15,12 +16,18 @@ const SAMPLE_DATA = [
 
 /** @param {"song"|"artist"|"year"} type @param {string} query */
 async function runSearch(type, query) {
-  const q = query.trim().toUpperCase();
+  if (type === "artist") {
+    return await searchArtist(query);
+  }
+
+  // TEMP: keep sample search for song/year until you wire them
+  const q = (query || "").trim().toUpperCase();
   if (!q) return [];
   if (type === "song")   return SAMPLE_DATA.filter(r => r.title.toUpperCase().includes(q));
-  if (type === "artist") return SAMPLE_DATA.filter(r => r.artist.toUpperCase().includes(q));
-  return SAMPLE_DATA.filter(r => String(r.year) === q);
+  if (type === "year")   return SAMPLE_DATA.filter(r => String(r.year) === q);
+  return [];
 }
+
 
 function SearchCard({ title, type, placeholder, inputMode }) {
   const [value, setValue] = useState("");
