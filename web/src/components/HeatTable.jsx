@@ -1,4 +1,4 @@
-// web/src/components/HeatTable.jsx (freeze patch re-delivery)
+// web/src/components/HeatTable.jsx (song-wrap patch)
 import React from "react";
 import "./heat-table.css";
 
@@ -19,7 +19,7 @@ export default function HeatTable({ years, rows }) {
           <tbody>
             {rows.map((r, idx) => (
               <tr key={r.song + idx}>
-                <td className="sticky-left col-song song-cell">{r.song}</td>
+                <td className="sticky-left col-song song-cell" title={r.song}>{r.song}</td>
                 <td className="num-cell" style={{background:r._change.bg, color:r._change.color}}>{r.change}</td>
                 <td className="num-cell" style={{background:r._bestBg}}>{r.best}</td>
                 <td className="num-cell" style={{background:r._avgBg}}>{r.average}</td>

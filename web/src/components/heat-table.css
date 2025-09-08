@@ -1,18 +1,18 @@
-/* web/src/components/heat-table.css (v3 header bleed fix) */
+/* web/src/components/heat-table.css (song-wrap patch) */
 .heat-wrap { background: transparent; }
 .heat-scroll {
-  overflow: auto;                 /* both axes */
-  max-height: 72vh;               /* vertical scrolling happens inside the table */
+  overflow: auto;
+  max-height: 72vh;
   border: 1px solid #3f3f46;
   border-radius: 16px;
   background: #0b0b0b;
 }
 
-/* Ensure opaque header background so scrolled cells don't show through */
+/* Opaque header so body cells never show through */
 .heat-table thead th { background-color: #0e0e0e !important; }
 
 .heat-table {
-  border-collapse: separate;      /* CHANGE from collapse -> separate to avoid bleed with sticky */
+  border-collapse: separate;
   border-spacing: 0;
   width: max(100%, 1400px);
   font-size: 14px;
@@ -22,26 +22,53 @@
 .heat-table th, .heat-table td {
   border: 1px solid #27272a;
   padding: 6px 8px;
-  white-space: nowrap;
+  white-space: nowrap;   /* default for numeric cells */
   text-align: center;
-  background-clip: padding-box;   /* avoids border bleeding under sticky */
+  background-clip: padding-box;
 }
 
 .col-song {
   text-align: left !important;
-  min-width: 280px;
-  max-width: 520px;
+  width: 20ch;           /* desktop default width */
+  min-width: 16ch;
+  max-width: 28ch;
 }
 
+/* Wrap long song titles on the sticky first column */
 .song-cell {
-  font-weight: 400 !important;       /* not bold */
+  font-weight: 400 !important;
   color: #f4f4f5 !important;
   background: #0b0b0b !important;
+  white-space: normal !important;     /* allow wrapping */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
+/* Numbers keep white text for dark heat cells */
 .num-cell { color: #ffffff; }
 
 /* Sticky layering */
 .sticky-top   { position: sticky; top: 0;    z-index: 4; background: #0e0e0e; box-shadow: 0 1px 0 #27272a; }
 .sticky-left  { position: sticky; left: 0;   z-index: 3; background: #0e0e0e; box-shadow: 1px 0 0 #27272a; }
 .corner       { z-index: 6 !important; background: #0e0e0e !important; box-shadow: 1px 1px 0 #27272a; }
+
+.heat-table thead th {
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+/* ------- Small-screen (phones) tweaks ------- */
+@media (max-width: 640px) {
+  .heat-table { font-size: 12px; }
+  .col-song {
+    width: 12ch;         /* force ~12 characters wide */
+    min-width: 12ch;
+    max-width: 12ch;
+  }
+  .song-cell {
+    line-height: 1.1;
+    padding-right: 6px;  /* keep numbers snug */
+  }
+  .heat-scroll { max-height: 70vh; }
+}
