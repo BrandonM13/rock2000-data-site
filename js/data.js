@@ -4,6 +4,16 @@ const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? c.v : ''
 return { cols, rows };
 }
 
+async function fetchSheet(sheetName){
+const ts = Date.now();
+const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_ts=${ts}`;
+const res = await fetch(url, { cache: 'no-store' });
+const text = await res.text();
+const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
+const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? c.v : '')));
+return { cols, rows };
+}
 
 export async function loadData(statusEl){
 statusEl && (statusEl.textContent = 'Loading…');
@@ -71,4 +81,5 @@ songsMap.get(sN).years.set(yr, rk);
 
 const yearsAll = Array.from(state.allYears).sort((a,b)=>a-b);
 statusEl && (statusEl.textContent = `Loaded ${rows.length} rows · Years ${yearsAll[0]}–${yearsAll[yearsAll.length-1]} · Artists: ${state.byArtist.size}`);
+
 }
