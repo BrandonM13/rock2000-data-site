@@ -1,4 +1,4 @@
-// web/src/components/HeatTable.jsx (v2: left-aligned song titles, not bold)
+// web/src/components/HeatTable.jsx (freeze patch re-delivery)
 import React from "react";
 import "./heat-table.css";
 
@@ -9,7 +9,7 @@ export default function HeatTable({ years, rows }) {
         <table className="heat-table">
           <thead>
             <tr>
-              <th className="sticky-left sticky-top z2 col-song">SONG</th>
+              <th className="sticky-left sticky-top corner col-song">SONG</th>
               <th className="sticky-top">CHANGE</th>
               <th className="sticky-top">BEST</th>
               <th className="sticky-top">AVERAGE</th>

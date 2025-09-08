@@ -1,4 +1,4 @@
-// web/src/lib/artistData.js (v2: correct change logic, darker heatmap)
+// web/src/lib/artistData.js (v3: derive song/artist from KEY if missing; keep dark heatmap & change logic)
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
@@ -10,7 +10,7 @@ export function norm(s){
     .normalize("NFKD")
     .toUpperCase()
     .replace(/&/g,"AND")
-    .replace(/['"`]/g,"")
+    .replace(/['\"`]/g,"")
     .replace(/\s+/g," ")
     .trim();
 }
@@ -31,7 +31,18 @@ const HDR = {
   rank:   ["rank","position"],
   song:   ["songs","song","title","song_title","all_caps_title","all caps title","SONGS","TITLE"],
   artist: ["artists","artist","artist_name","all_caps_artist","all caps artist","ARTISTS","ARTIST"],
+  key:    ["key","song|artist","song_artist_key","master key","master_key","key = song|artist"]
 };
+
+function splitKey(raw){
+  if (raw == null) return { song: null, artist: null };
+  const s = String(raw);
+  const i = s.indexOf("|");
+  if (i === -1) return { song: s.trim(), artist: null };
+  const left = s.slice(0, i).trim();
+  const right = s.slice(i+1).trim();
+  return { song: left || null, artist: right || null };
+}
 
 export async function loadArtistData() {
   const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MCD });
@@ -41,8 +52,17 @@ export async function loadArtistData() {
   for (const r of rows) {
     const year = Number(valueFor(r, HDR.year));
     const rank = Number(valueFor(r, HDR.rank));
-    const song = valueFor(r, HDR.song);
-    const artist = valueFor(r, HDR.artist);
+    let song = valueFor(r, HDR.song);
+    let artist = valueFor(r, HDR.artist);
+    const keyVal = valueFor(r, HDR.key);
+
+    // If SONG/ARTIST are missing, derive from KEY = "<song>|<artist>"
+    if ((!song || !artist) && keyVal != null) {
+      const { song: sK, artist: aK } = splitKey(keyVal);
+      if (!song && sK) song = sK;
+      if (!artist && aK) artist = aK;
+    }
+
     if (!year || !rank || !song || !artist) continue;
     yearSet.add(year);
     entries.push({ year, rank, song, artist });

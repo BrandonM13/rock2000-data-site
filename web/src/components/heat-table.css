@@ -1,14 +1,19 @@
-/* web/src/components/heat-table.css (v2) */
+/* web/src/components/heat-table.css (v3 header bleed fix) */
 .heat-wrap { background: transparent; }
 .heat-scroll {
-  overflow: auto;
+  overflow: auto;                 /* both axes */
+  max-height: 72vh;               /* vertical scrolling happens inside the table */
   border: 1px solid #3f3f46;
   border-radius: 16px;
   background: #0b0b0b;
 }
 
+/* Ensure opaque header background so scrolled cells don't show through */
+.heat-table thead th { background-color: #0e0e0e !important; }
+
 .heat-table {
-  border-collapse: collapse;
+  border-collapse: separate;      /* CHANGE from collapse -> separate to avoid bleed with sticky */
+  border-spacing: 0;
   width: max(100%, 1400px);
   font-size: 14px;
   color: #e5e7eb;
@@ -19,6 +24,7 @@
   padding: 6px 8px;
   white-space: nowrap;
   text-align: center;
+  background-clip: padding-box;   /* avoids border bleeding under sticky */
 }
 
 .col-song {
@@ -33,15 +39,9 @@
   background: #0b0b0b !important;
 }
 
-.num-cell {
-  color: #ffffff;                    /* white text for dark heat cells */
-}
+.num-cell { color: #ffffff; }
 
-.sticky-top { position: sticky; top: 0; background: #111; z-index: 1; }
-.sticky-left { position: sticky; left: 0; background: #111; z-index: 1; }
-.z2 { z-index: 2; }
-
-.heat-table thead th {
-  font-weight: 600;
-  letter-spacing: .02em;
-}
+/* Sticky layering */
+.sticky-top   { position: sticky; top: 0;    z-index: 4; background: #0e0e0e; box-shadow: 0 1px 0 #27272a; }
+.sticky-left  { position: sticky; left: 0;   z-index: 3; background: #0e0e0e; box-shadow: 1px 0 0 #27272a; }
+.corner       { z-index: 6 !important; background: #0e0e0e !important; box-shadow: 1px 1px 0 #27272a; }
