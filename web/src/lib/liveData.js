@@ -1,4 +1,4 @@
-// web/src/lib/liveData.js (v3c) — prefer year-sheet labels (DEBUT/RE-ENTRY), robust parsing, cache
+// web/src/lib/liveData.js (v3d) — STRICT: CHANGE from column D of the year tab. No fallbacks.
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
@@ -23,69 +23,32 @@ function setCache(key, v){
 export function norm(s){
   return (s ?? "").toString().normalize("NFKD").toUpperCase().replace(/&/g,"AND").replace(/['\"`]/g,"").replace(/\s+/g," ").trim();
 }
-function valueFor(obj, candidates){
-  const keys = Object.keys(obj);
-  const canon = (k) => k.toString().trim().toLowerCase().replace(/[\s_]+/g, " ");
-  const map = new Map(keys.map(k => [canon(k), k]));
-  for (const cand of candidates){
-    const kk = canon(cand);
-    if (map.has(kk)) return obj[map.get(kk)];
-  }
-  return null;
-}
 
-const HDR_YEAR = {
-  rank:   ["rank","position","rnk","#"],
-  song:   ["song","songs","title","song_title","all_caps_title","title (song)"],
-  artist: ["artist","artists","artist_name","all_caps_artist","artist (band)"],
-  change: ["change","position change","pos change","chg","delta","movement","Δ"],
-  status: ["status","state","type","debut/re-entry","debut re-entry","debut_reentry","change text","change_text","flag"],
-};
-
-const HDR_LOG = {
-  key:   ["key","song|artist","song_artist_key","master key","master_key","c"],
-  relYr: ["release year","release_year","year released","rel year","rel_yr","i"]
-};
-
-function parseChangeFromSheet(rawChange){
-  if (rawChange == null) return null;
-  const s = String(rawChange).trim();
-  if (!s) return null;
-  const U = s.toUpperCase();
-  if (U.includes("DEBUT")) return "DEBUT";
-  if (U.includes("RE-ENTRY") || U.includes("REENTRY")) return "RE-ENTRY";
-  if (U === "-" || U === "—") return "-";
-  const n = Number(s);
-  return Number.isNaN(n) ? null : n;
-}
-
-function normalizeStatus(status){
-  if (status == null) return null;
-  const U = String(status).trim().toUpperCase();
-  if (U === "DEBUT") return "DEBUT";
-  if (U === "RE-ENTRY" || U === "REENTRY") return "RE-ENTRY";
-  if (U === "-" || U === "—") return "-";
-  return null;
+// helper: get the Nth column value from a row (A=0, B=1, C=2, D=3, ...)
+function col(row, idx){
+  if (Array.isArray(row)) return row[idx];
+  const vals = [];
+  for (const k of Object.keys(row)) vals.push(row[k]);
+  return vals[idx];
 }
 
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3c`;
+  const ck = `yearRows_${targetYear}_v3d`;
   const cached = getCache(ck);
   if (cached) return cached;
 
   const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear) });
   const out = [];
   for (const r of rows){
-    const rank = Number(valueFor(r, HDR_YEAR.rank));
-    const song = valueFor(r, HDR_YEAR.song);
-    const artist = valueFor(r, HDR_YEAR.artist);
-    const rawChange = valueFor(r, HDR_YEAR.change);
-    const statusCell = valueFor(r, HDR_YEAR.status);
+    const rank   = Number(col(r, 0)); // A
+    const song   = col(r, 1);         // B
+    const artist = col(r, 2);         // C
+    const changeCell = col(r, 3);     // D (STRICT)
     if (!rank || !song || !artist) continue;
 
-    // PREF: use explicit label from the current year sheet
-    let change = parseChangeFromSheet(rawChange);
-    if (change == null) change = normalizeStatus(statusCell);
+    // Use exactly what's in column D (numbers, 'DEBUT', 'RE-ENTRY', '-', etc.)
+    let change = changeCell;
+    if (typeof change === "string") change = change.trim();
 
     out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
   }
@@ -94,31 +57,24 @@ export async function loadYearRows(targetYear){
   return out;
 }
 
+// Still used only for showing release year (unrelated to CHANGE).
 export async function loadReleaseYearMap(){
-  const ck = "releaseMap_v3c";
+  const ck = "releaseMap_v3d";
   const cached = getCache(ck);
   if (cached){
     const m = new Map(Object.entries(cached).map(([k,v]) => [k, v]));
     return m;
   }
-
   const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MASTER_LOG });
   const map = new Map();
   for (const r of rows){
-    let key = valueFor(r, ["key","c","song|artist","song_artist_key"]);
-    if (!key){
-      const cols = Object.keys(r);
-      if (cols.length >= 3) key = r[cols[2]];
-    }
-    let rel = valueFor(r, HDR_LOG.relYr);
-    if (rel == null){
-      const cols = Object.keys(r);
-      if (cols.length >= 9) rel = r[cols[8]];
-    }
+    const vals = Object.keys(r).map(k=>r[k]);
+    const key = (vals[2] ?? "").toString();
+    const yr  = Number(vals[8]);
     if (!key) continue;
-    const k = norm(String(key));
-    const yr = Number(rel) || null;
-    if (!map.has(k)) map.set(k, yr);
+    const k = norm(key);
+    const v = Number.isFinite(yr) ? yr : null;
+    if (!map.has(k)) map.set(k, v);
   }
   const obj = {}; map.forEach((v,k)=> obj[k]=v);
   setCache(ck, obj);

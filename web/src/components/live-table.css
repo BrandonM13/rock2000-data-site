@@ -1,4 +1,4 @@
-/* web/src/components/live-table.css (v3c) — sizes between v3 and v3b; top row centered */
+/* web/src/components/live-table.css (v3d) — slightly smaller mid fonts; centered top row */
 .live-wrap { background: transparent; }
 .live-scroll {
   overflow: auto;
@@ -13,53 +13,52 @@
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  min-width: 880px;
+  min-width: 860px;
   color: #e5e7eb;
   --col-song-w: auto;
   --col-artist-w: auto;
 }
 .live-table th, .live-table td {
   border: 1px solid #27272a;
-  padding: 10px 14px;
+  padding: 9px 12px;
   white-space: nowrap;
   background-clip: padding-box;
 }
 
-/* Header centered & 20px */
+/* Header 19px */
 .live-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
   text-align: center;
   font-weight: 700;
-  font-size: 20px;  /* middle ground */
-  letter-spacing: .02em;
-  height: var(--hdr-h, 46px);
+  font-size: 19px;
+  height: var(--hdr-h, 44px);
 }
 
-/* Sticky rank-1 row + center everything on that row */
+/* Sticky rank-1 row centered */
 .sticky-first-row td {
   position: sticky;
-  top: var(--hdr-h, 46px);
+  top: var(--hdr-h, 44px);
   z-index: 2;
   background: #111;
   box-shadow: 0 1px 0 #27272a;
 }
 .center-all td { text-align: center !important; }
 
-/* Column widths & body fonts (middle ground) */
-.col-rank   { width: 78px;  text-align: center !important; font-size: 19px; }
-.col-song   { width: var(--col-song-w);   font-size: 18px; text-align: left !important; }
-.col-artist { width: var(--col-artist-w); font-size: 18px; text-align: left !important; }
-.col-year   { width: 92px;  text-align: center !important; font-size: 19px; }
-.col-change { width: 136px; text-align: center !important; font-size: 20px; }
+/* Body fonts */
+.col-rank   { width: 76px;  text-align: center !important; font-size: 18px; }
+.col-song   { width: var(--col-song-w);   font-size: 17px; text-align: left !important; }
+.col-artist { width: var(--col-artist-w); font-size: 17px; text-align: left !important; }
+.col-year   { width: 90px;  text-align: center !important; font-size: 18px; }
+.col-change { width: 130px; text-align: center !important; font-size: 19px; }
 
-/* Top row sizes (middle ground) */
-.sticky-first-row .col-rank   { font-size: 28px !important; }
-.sticky-first-row .col-song   { font-size: 26px !important; }
-.sticky-first-row .col-artist { font-size: 26px !important; }
-.sticky-first-row .col-year   { font-size: 28px !important; }
-.sticky-first-row .col-change { font-size: 22px !important; }
+/* Top row */
+.sticky-first-row .col-rank   { font-size: 26px !important; }
+.sticky-first-row .col-song   { font-size: 24px !important; }
+.sticky-first-row .col-artist { font-size: 24px !important; }
+.sticky-first-row .col-year   { font-size: 26px !important; }
+.sticky-first-row .col-change { font-size: 21px !important; }
 
 /* Ensure change cell colors override sticky bg */
 .sticky-first-row td.col-change.chg-pos     { background: #1e7a46 !important; color: #fff !important; }
@@ -70,7 +69,7 @@
 
 .gold-text { color: #f59e0b !important; }
 
-/* CHANGE color mapping (non-top rows) */
+/* CHANGE color mapping */
 .chg-pos     { background: #1e7a46; color: #ffffff; text-align:center !important; }
 .chg-neg     { background: #8e1a1a; color: #ffffff; text-align:center !important; }
 .chg-dash    { background: #000000; color: #e5e7eb; text-align:center !important; }
@@ -78,5 +77,5 @@
 .chg-reentry { background: #000000; color: #f59e0b; text-align:center !important; }
 
 @media (max-width: 640px){
-  .live-table { font-size: 14px; min-width: 740px; }
+  .live-table { font-size: 14px; min-width: 720px; }
 }
