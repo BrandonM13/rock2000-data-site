@@ -1,4 +1,4 @@
-/* web/src/components/live-table.css (v3b) — larger fonts + top row change color specificity */
+/* web/src/components/live-table.css (v3c) — sizes between v3 and v3b; top row centered */
 .live-wrap { background: transparent; }
 .live-scroll {
   overflow: auto;
@@ -13,60 +13,60 @@
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  min-width: 900px;
-  font-size: 14px;
+  min-width: 880px;
   color: #e5e7eb;
   --col-song-w: auto;
   --col-artist-w: auto;
 }
 .live-table th, .live-table td {
   border: 1px solid #27272a;
-  padding: 12px 16px;  /* more room for readability */
+  padding: 10px 14px;
   white-space: nowrap;
   background-clip: padding-box;
 }
 
-/* Header centered & bigger */
+/* Header centered & 20px */
 .live-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
   text-align: center;
   font-weight: 700;
-  font-size: 22px;   /* was 19 */
+  font-size: 20px;  /* middle ground */
   letter-spacing: .02em;
-  height: var(--hdr-h, 48px);
+  height: var(--hdr-h, 46px);
 }
 
-/* Sticky rank-1 row */
+/* Sticky rank-1 row + center everything on that row */
 .sticky-first-row td {
   position: sticky;
-  top: var(--hdr-h, 48px);
+  top: var(--hdr-h, 46px);
   z-index: 2;
   background: #111;
   box-shadow: 0 1px 0 #27272a;
 }
+.center-all td { text-align: center !important; }
 
-/* Ensure change cell colors override sticky background */
+/* Column widths & body fonts (middle ground) */
+.col-rank   { width: 78px;  text-align: center !important; font-size: 19px; }
+.col-song   { width: var(--col-song-w);   font-size: 18px; text-align: left !important; }
+.col-artist { width: var(--col-artist-w); font-size: 18px; text-align: left !important; }
+.col-year   { width: 92px;  text-align: center !important; font-size: 19px; }
+.col-change { width: 136px; text-align: center !important; font-size: 20px; }
+
+/* Top row sizes (middle ground) */
+.sticky-first-row .col-rank   { font-size: 28px !important; }
+.sticky-first-row .col-song   { font-size: 26px !important; }
+.sticky-first-row .col-artist { font-size: 26px !important; }
+.sticky-first-row .col-year   { font-size: 28px !important; }
+.sticky-first-row .col-change { font-size: 22px !important; }
+
+/* Ensure change cell colors override sticky bg */
 .sticky-first-row td.col-change.chg-pos     { background: #1e7a46 !important; color: #fff !important; }
 .sticky-first-row td.col-change.chg-neg     { background: #8e1a1a !important; color: #fff !important; }
 .sticky-first-row td.col-change.chg-dash    { background: #000000 !important; color: #e5e7eb !important; }
 .sticky-first-row td.col-change.chg-debut   { background: #b08900 !important; color: #000 !important; }
 .sticky-first-row td.col-change.chg-reentry { background: #000000 !important; color: #f59e0b !important; }
-
-/* Column widths and fonts — bumped again for readability */
-.col-rank   { width: 84px;  text-align: center !important; font-size: 22px; }
-.col-song   { width: var(--col-song-w);   font-size: 20px; text-align: left !important; }
-.col-artist { width: var(--col-artist-w); font-size: 20px; text-align: left !important; }
-.col-year   { width: 96px;  text-align: center !important; font-size: 22px; }
-.col-change { width: 140px; text-align: center !important; font-size: 23px; }
-
-/* Top song font sizes & gold treatment */
-.sticky-first-row .col-rank   { font-size: 32px !important; }
-.sticky-first-row .col-song   { font-size: 30px !important; }
-.sticky-first-row .col-artist { font-size: 30px !important; }
-.sticky-first-row .col-year   { font-size: 32px !important; }
-.sticky-first-row .col-change { font-size: 24px !important; }
 
 .gold-text { color: #f59e0b !important; }
 
@@ -78,5 +78,5 @@
 .chg-reentry { background: #000000; color: #f59e0b; text-align:center !important; }
 
 @media (max-width: 640px){
-  .live-table { font-size: 16px; min-width: 760px; }
+  .live-table { font-size: 14px; min-width: 740px; }
 }

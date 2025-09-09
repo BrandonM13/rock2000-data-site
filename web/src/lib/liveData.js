@@ -1,4 +1,4 @@
-// web/src/lib/liveData.js (v3b) — robust CHANGE parsing
+// web/src/lib/liveData.js (v3c) — prefer year-sheet labels (DEBUT/RE-ENTRY), robust parsing, cache
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
@@ -38,8 +38,8 @@ const HDR_YEAR = {
   rank:   ["rank","position","rnk","#"],
   song:   ["song","songs","title","song_title","all_caps_title","title (song)"],
   artist: ["artist","artists","artist_name","all_caps_artist","artist (band)"],
-  change: ["change","delta","movement"],
-  status: ["status","state","type","debut/re-entry","debut re-entry","debut_reentry","change text","change_text"],
+  change: ["change","position change","pos change","chg","delta","movement","Δ"],
+  status: ["status","state","type","debut/re-entry","debut re-entry","debut_reentry","change text","change_text","flag"],
 };
 
 const HDR_LOG = {
@@ -47,29 +47,29 @@ const HDR_LOG = {
   relYr: ["release year","release_year","year released","rel year","rel_yr","i"]
 };
 
-function normalizeChange(change, status){
-  // Treat "", null, undefined, "null", "n/a" as missing
-  if (change === null || change === undefined) return null;
-  if (typeof change === "string"){
-    const s = change.trim().toUpperCase();
-    if (!s || s === "NULL" || s === "N/A" || s === "NA") return null;
-    if (s === "-" || s === "—") return "-";
-    if (s === "DEBUT" || s === "REENTRY" || s === "RE-ENTRY") return s === "REENTRY" ? "RE-ENTRY" : s;
-    const n = Number(s);
-    if (!Number.isNaN(n)) return n;
-  } else if (typeof change === "number"){
-    return change;
-  }
-  // Fallback to status text
-  if (status){
-    const t = String(status).trim().toUpperCase();
-    if (t === "DEBUT" || t === "REENTRY" || t === "RE-ENTRY") return t === "REENTRY" ? "RE-ENTRY" : t;
-  }
+function parseChangeFromSheet(rawChange){
+  if (rawChange == null) return null;
+  const s = String(rawChange).trim();
+  if (!s) return null;
+  const U = s.toUpperCase();
+  if (U.includes("DEBUT")) return "DEBUT";
+  if (U.includes("RE-ENTRY") || U.includes("REENTRY")) return "RE-ENTRY";
+  if (U === "-" || U === "—") return "-";
+  const n = Number(s);
+  return Number.isNaN(n) ? null : n;
+}
+
+function normalizeStatus(status){
+  if (status == null) return null;
+  const U = String(status).trim().toUpperCase();
+  if (U === "DEBUT") return "DEBUT";
+  if (U === "RE-ENTRY" || U === "REENTRY") return "RE-ENTRY";
+  if (U === "-" || U === "—") return "-";
   return null;
 }
 
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3b`;
+  const ck = `yearRows_${targetYear}_v3c`;
   const cached = getCache(ck);
   if (cached) return cached;
 
@@ -80,9 +80,13 @@ export async function loadYearRows(targetYear){
     const song = valueFor(r, HDR_YEAR.song);
     const artist = valueFor(r, HDR_YEAR.artist);
     const rawChange = valueFor(r, HDR_YEAR.change);
-    const status = valueFor(r, HDR_YEAR.status);
+    const statusCell = valueFor(r, HDR_YEAR.status);
     if (!rank || !song || !artist) continue;
-    const change = normalizeChange(rawChange, status);
+
+    // PREF: use explicit label from the current year sheet
+    let change = parseChangeFromSheet(rawChange);
+    if (change == null) change = normalizeStatus(statusCell);
+
     out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
   }
   out.sort((a,b)=> a.rank - b.rank);
@@ -91,7 +95,7 @@ export async function loadYearRows(targetYear){
 }
 
 export async function loadReleaseYearMap(){
-  const ck = "releaseMap_v3b";
+  const ck = "releaseMap_v3c";
   const cached = getCache(ck);
   if (cached){
     const m = new Map(Object.entries(cached).map(([k,v]) => [k, v]));
