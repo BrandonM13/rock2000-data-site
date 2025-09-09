@@ -1,5 +1,5 @@
 // web/src/lib/liveData.js (v3g) — CHANGE uses formatted text in column D exactly as sheet shows
-import { fetchGviz } from "./gviz";
+import { fetchGviz, fetchCsv } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MASTER_LOG = "MASTER_LOG";
@@ -28,11 +28,12 @@ function normKey(s){
   return (s||"").toString().trim().toUpperCase();
 }
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3j`;
+  const ck = `yearRows_${targetYear}_v3k`;
   const cached = getCache(ck);
   if (cached) return cached;
 
   const { rowsArrayF, rowsArrayV } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
+  const csvChanges = await fetchCsv({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "D:D" });
 const debug = new URLSearchParams(location.search).has("debug");
 if (debug) {
   console.table(rowsArrayF.slice(0, 10).map(r => ({ A:r[0], B:r[1], C:r[2], D:r[3] })));
@@ -52,7 +53,7 @@ if (debug) {
     const artist = arrF[2];
     let change = arrF[3]; // prefer formatted text
     if (change === null || change === undefined || (typeof change === "string" && change.trim() === "")) {
-      change = rowsArrayV[out.length]?.[3] ?? null; // fallback to raw value
+      change = rowsArrayV[out.length]?.[3] ?? (csvChanges[out.length]?.[0] ?? null); // fallback to raw or CSV
     }
     if (!rank || !song || !artist) continue;
     if (typeof change === "string") change = change.trim();
