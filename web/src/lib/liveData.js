@@ -1,61 +1,70 @@
-// web/src/lib/liveData.js — CSV-first exact values (no recomputation)
-import { fetchGviz, fetchCsv } from "./gviz";
+// web/src/lib/liveData.js (v2) — per-year tabs, precomputed CHANGE
+import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MASTER_LOG = "MASTER_LOG";
 
-const CACHE_TTL_MS = 1000 * 60 * 60 * 12;
+export function norm(s){
+  return (s ?? "").toString().normalize("NFKD").toUpperCase().replace(/&/g,"AND").replace(/['\"`]/g,"").replace(/\s+/g," ").trim();
+}
+function valueFor(obj, candidates){
+  const keys = Object.keys(obj);
+  const canon = (k) => k.toString().trim().toLowerCase().replace(/[\s_]+/g, " ");
+  const map = new Map(keys.map(k => [canon(k), k]));
+  for (const cand of candidates){
+    const kk = canon(cand);
+    if (map.has(kk)) return obj[map.get(kk)];
+  }
+  return null;
+}
 
-function getCache(key){ try{ const raw = sessionStorage.getItem(key); if(!raw) return null; const obj = JSON.parse(raw); if(!obj||!obj.t||!obj.v) return null; if(Date.now()-obj.t> CACHE_TTL_MS) return null; return obj.v; }catch{ return null; }}
-function setCache(key, v){ try{ sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); }catch{} }
+const HDR_YEAR = {
+  rank:   ["rank","position","rnk","#"],
+  song:   ["song","songs","title","song_title","all_caps_title","title (song)"],
+  artist: ["artist","artists","artist_name","all_caps_artist","artist (band)"],
+  change: ["change","delta","movement"],
+};
 
-/** Load year rows from sheet named exactly with the year.
- * Columns: RANK, SONG, ARTIST, CHANGE come directly from that sheet (display text).
- * YEAR is not included here; it is merged in the page using the releaseYearMap.
- */
+const HDR_LOG = {
+  key:   ["key","song|artist","song_artist_key","master key","master_key","c"],
+  relYr: ["release year","release_year","year released","rel year","rel_yr","i"]
+};
+
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_vCSV1`;
-  const cached = getCache(ck);
-  if (cached) return cached;
-
-  // CSV gives us exactly what the sheet displays.
-  const rows = await fetchCsv({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
-
+  const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear) });
   const out = [];
   for (const r of rows){
-    const rankTxt = (r[0] ?? "").trim();
-    const song = (r[1] ?? "").trim();
-    const artist = (r[2] ?? "").trim();
-    let change = r[3]; // as displayed (DEBUT, RE-ENTRY, '-', numbers)
-    const rank = Number(rankTxt);
-
-    // Skip headers or blank/incomplete rows
-    if (!Number.isFinite(rank) || !song || !artist) continue;
-
-    out.push({ rank, song, artist, change, keyExact: `${song}|${artist}` });
+    const rank = Number(valueFor(r, HDR_YEAR.rank));
+    const song = valueFor(r, HDR_YEAR.song);
+    const artist = valueFor(r, HDR_YEAR.artist);
+    let change = valueFor(r, HDR_YEAR.change);
+    if (!rank || !song || !artist) continue;
+    const num = Number(change);
+    if (!Number.isNaN(num) && change !== "" && change !== null) change = num;
+    out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
   }
-
   out.sort((a,b)=> a.rank - b.rank);
-  setCache(ck, out);
   return out;
 }
 
-/** Build a release-year map from MASTER_LOG (key at C, YEAR at I), exact strings. */
 export async function loadReleaseYearMap(){
-  const ck = "releaseMap_vCSV1";
-  const cached = getCache(ck);
-  if (cached) return new Map(Object.entries(cached));
-
-  // Fetch C:I so we can read C (index 0 in this range) and I (index 6 in this range)
-  const rows = await fetchCsv({ sheetId: SHEET_ID, sheetName: TAB_MASTER_LOG, range: "C:I" });
+  const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MASTER_LOG });
   const map = new Map();
   for (const r of rows){
-    const key = (r[0] ?? "").trim();   // MASTER_LOG!C:C (exact SONG|ARTIST)
-    const yr  = (r[6] ?? "").trim();   // MASTER_LOG!I:I (displayed YEAR)
+    let key = valueFor(r, HDR_LOG.key);
+    if (!key){
+      const cols = Object.keys(r);
+      if (cols.length >= 3) key = r[cols[2]];
+    }
+    let rel = valueFor(r, HDR_LOG.relYr);
+    if (rel == null){
+      const cols = Object.keys(r);
+      if (cols.length >= 9) rel = r[cols[8]];
+    }
     if (!key) continue;
-    if (!map.has(key)) map.set(key, yr);
+    const k = norm(String(key));
+    const yr = Number(rel) || null;
+    if (!map.has(k)) map.set(k, yr);
   }
-  const obj = Object.fromEntries(map.entries());
-  setCache(ck, obj);
   return map;
 }

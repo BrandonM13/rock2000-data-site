@@ -1,4 +1,4 @@
-// web/src/pages/Live.jsx (v3) — speed tweaks + fallback change fix
+// web/src/pages/Live.jsx (v2) — uses per-year tabs and precomputed change
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { loadYearRows, loadReleaseYearMap } from "../lib/liveData";
@@ -21,7 +21,6 @@ export default function Live(){
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // Preload release map (cached in sessionStorage)
   useEffect(() => {
     let alive = true;
     loadReleaseYearMap().then(map => { if (alive) setReleaseMap(map); })
@@ -29,23 +28,18 @@ export default function Live(){
     return () => { alive = false; };
   }, []);
 
-  // Load the selected year and fill missing change values if needed
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    (async () => {
-      try {
-        const curRows = await loadYearRows(year);
-        const withRelease = curRows.map(r => ({ ...r, releaseYear: releaseMap.get(r.keyExact) ?? "" }));
-        if (alive) setRows(withRelease);
-        if (alive) setRows(withRelease);
-      } catch (e){
-        console.error(e);
-        if (alive) setErr("Failed to load year data.");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+    loadYearRows(year).then(rows => {
+      if (!alive) return;
+      const mapped = rows.map(r => ({ ...r, releaseYear: releaseMap.get(r.key) ?? "" }));
+      setRows(mapped);
+      setLoading(false);
+    }).catch(e => {
+      console.error(e);
+      if (alive) { setErr("Failed to load year data."); setLoading(false); }
+    });
     return () => { alive = false; };
   }, [year, releaseMap]);
 
