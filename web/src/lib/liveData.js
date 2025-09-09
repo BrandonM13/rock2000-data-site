@@ -24,8 +24,11 @@ export function norm(s){
   return (s ?? "").toString().normalize("NFKD").toUpperCase().replace(/&/g,"AND").replace(/['\"`]/g,"").replace(/\s+/g," ").trim();
 }
 
+function normKey(s){
+  return (s||"").toString().trim().toUpperCase();
+}
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3g`;
+  const ck = `yearRows_${targetYear}_v3h`;
   const cached = getCache(ck);
   if (cached) return cached;
 

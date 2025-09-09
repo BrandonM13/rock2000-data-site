@@ -38,10 +38,8 @@ export default function Live(){
         const curRows = await loadYearRows(year);
         // Assign release year immediately if available
         const withRelease = curRows.map(r => ({ ...r, releaseYear: releaseMap.get(r.key) ?? "" }));
-        const needFix = withRelease.some(r => r.change == null || r.change === "");
-        if (!needFix){
-          if (alive){ setRows(withRelease); setLoading(false); }
-          return;
+        if (alive){ setRows(withRelease); setLoading(false); }
+return;
         }
         // Fallback: fetch previous year once and compute missing changes
         const prevRows = await loadYearRows(year - 1);
