@@ -30,6 +30,18 @@ export async function loadYearRows(targetYear){
   if (cached) return cached;
 
   const { rowsArrayF } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
+const debug = new URLSearchParams(location.search).has("debug");
+if (debug) {
+  console.table(rowsArrayF.slice(0, 10).map(r => ({ A:r[0], B:r[1], C:r[2], D:r[3] })));
+
+  // Spot-check THE SUMMONING / SLEEP TOKEN
+  const chk = rowsArrayF.find(r =>
+    String(r[1]).toUpperCase().includes("THE SUMMONING") &&
+    String(r[2]).toUpperCase().includes("SLEEP TOKEN")
+  );
+  console.log("SUMMONING row (A,B,C,D):", chk);
+}
+
   const out = [];
   for (const arrF of rowsArrayF){
     const rank = Number(arrF[0]);
