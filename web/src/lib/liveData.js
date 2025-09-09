@@ -1,4 +1,4 @@
-// web/src/lib/liveData.js (v3) — per-year tabs, caching, precomputed CHANGE
+// web/src/lib/liveData.js (v3b) — robust CHANGE parsing
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
@@ -47,8 +47,29 @@ const HDR_LOG = {
   relYr: ["release year","release_year","year released","rel year","rel_yr","i"]
 };
 
+function normalizeChange(change, status){
+  // Treat "", null, undefined, "null", "n/a" as missing
+  if (change === null || change === undefined) return null;
+  if (typeof change === "string"){
+    const s = change.trim().toUpperCase();
+    if (!s || s === "NULL" || s === "N/A" || s === "NA") return null;
+    if (s === "-" || s === "—") return "-";
+    if (s === "DEBUT" || s === "REENTRY" || s === "RE-ENTRY") return s === "REENTRY" ? "RE-ENTRY" : s;
+    const n = Number(s);
+    if (!Number.isNaN(n)) return n;
+  } else if (typeof change === "number"){
+    return change;
+  }
+  // Fallback to status text
+  if (status){
+    const t = String(status).trim().toUpperCase();
+    if (t === "DEBUT" || t === "REENTRY" || t === "RE-ENTRY") return t === "REENTRY" ? "RE-ENTRY" : t;
+  }
+  return null;
+}
+
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3`;
+  const ck = `yearRows_${targetYear}_v3b`;
   const cached = getCache(ck);
   if (cached) return cached;
 
@@ -58,13 +79,10 @@ export async function loadYearRows(targetYear){
     const rank = Number(valueFor(r, HDR_YEAR.rank));
     const song = valueFor(r, HDR_YEAR.song);
     const artist = valueFor(r, HDR_YEAR.artist);
-    let change = valueFor(r, HDR_YEAR.change);
+    const rawChange = valueFor(r, HDR_YEAR.change);
     const status = valueFor(r, HDR_YEAR.status);
     if (!rank || !song || !artist) continue;
-    // prefer the numeric change if present; else use status text (DEBUT/RE-ENTRY)
-    const num = Number(change);
-    if (!Number.isNaN(num) && change !== "" && change !== null) change = num;
-    else if (status != null && status !== "") change = String(status).toUpperCase();
+    const change = normalizeChange(rawChange, status);
     out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
   }
   out.sort((a,b)=> a.rank - b.rank);
@@ -73,7 +91,7 @@ export async function loadYearRows(targetYear){
 }
 
 export async function loadReleaseYearMap(){
-  const ck = "releaseMap_v3";
+  const ck = "releaseMap_v3b";
   const cached = getCache(ck);
   if (cached){
     const m = new Map(Object.entries(cached).map(([k,v]) => [k, v]));
@@ -98,7 +116,6 @@ export async function loadReleaseYearMap(){
     const yr = Number(rel) || null;
     if (!map.has(k)) map.set(k, yr);
   }
-  // stash as plain object
   const obj = {}; map.forEach((v,k)=> obj[k]=v);
   setCache(ck, obj);
   return map;

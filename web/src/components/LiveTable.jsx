@@ -1,4 +1,4 @@
-// web/src/components/LiveTable.jsx (v3) — larger fonts, canvas width measure, centered top row
+// web/src/components/LiveTable.jsx (v3b) — also make top rank gold
 import React, { useEffect, useRef, useState } from "react";
 import "./live-table.css";
 
@@ -6,20 +6,18 @@ export default function LiveTable({ rows }){
   const tableRef = useRef(null);
   const [measured, setMeasured] = useState({ song: 0, artist: 0 });
 
-  // Measure Song/Artist widths using canvas (fast, no layout thrash)
   useEffect(() => {
     const el = tableRef.current;
     if (!el) return;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    // body font for song/artist is 17px per spec (+7)
-    ctx.font = "17px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji'";
+    ctx.font = "20px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji'";
     let maxSong = 0, maxArtist = 0;
     for (const r of rows){
       if (r.song)   maxSong   = Math.max(maxSong, ctx.measureText(r.song).width);
       if (r.artist) maxArtist = Math.max(maxArtist, ctx.measureText(r.artist).width);
     }
-    const pad = 32; // padding + borders
+    const pad = 36;
     const w = Math.ceil(Math.max(maxSong, maxArtist) + pad);
     if (w && (w !== measured.song || w !== measured.artist)){
       el.style.setProperty("--col-song-w", w + "px");
@@ -31,7 +29,7 @@ export default function LiveTable({ rows }){
   return (
     <div className="live-wrap">
       <div className="live-scroll">
-        <table ref={tableRef} className="live-table" style={{'--hdr-h':'42px'}}>
+        <table ref={tableRef} className="live-table" style={{'--hdr-h':'48px'}}>
           <thead>
             <tr>
               <th className="sticky-top th-rank">RANK</th>
@@ -53,7 +51,7 @@ export default function LiveTable({ rows }){
 
               return (
                 <tr key={r.key + idx} className={isTop ? "sticky-first-row center-all" : ""}>
-                  <td className="col-rank">{r.rank}</td>
+                  <td className={"col-rank" + (isTop ? " gold-text" : "")}>{r.rank}</td>
                   <td className={"col-song" + (isTop ? " gold-text" : "")} title={r.song}>{r.song}</td>
                   <td className={"col-artist" + (isTop ? " gold-text" : "")} title={r.artist}>{r.artist}</td>
                   <td className="col-year">{r.releaseYear ?? ""}</td>

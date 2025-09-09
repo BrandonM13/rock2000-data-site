@@ -1,4 +1,4 @@
-/* web/src/components/live-table.css (v3) — +7px fonts */
+/* web/src/components/live-table.css (v3b) — larger fonts + top row change color specificity */
 .live-wrap { background: transparent; }
 .live-scroll {
   overflow: auto;
@@ -13,7 +13,7 @@
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  min-width: 880px;
+  min-width: 900px;
   font-size: 14px;
   color: #e5e7eb;
   --col-song-w: auto;
@@ -21,49 +21,56 @@
 }
 .live-table th, .live-table td {
   border: 1px solid #27272a;
-  padding: 10px 14px;  /* a bit more room for bigger fonts */
+  padding: 12px 16px;  /* more room for readability */
   white-space: nowrap;
   background-clip: padding-box;
 }
 
-/* Header centered & size 12+7 = 19 */
+/* Header centered & bigger */
 .live-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
   text-align: center;
-  font-weight: 600;
-  font-size: 19px;
+  font-weight: 700;
+  font-size: 22px;   /* was 19 */
   letter-spacing: .02em;
-  height: var(--hdr-h, 42px);
+  height: var(--hdr-h, 48px);
 }
 
-/* Sticky rank-1 row centered; larger fonts */
+/* Sticky rank-1 row */
 .sticky-first-row td {
   position: sticky;
-  top: var(--hdr-h, 42px);
+  top: var(--hdr-h, 48px);
   z-index: 2;
   background: #111;
   box-shadow: 0 1px 0 #27272a;
 }
-.center-all td { text-align: center !important; }
 
-/* Column widths and fonts (+7 each) */
-.col-rank   { width: 72px;  text-align: center !important; font-size: 18px; }
-.col-song   { width: var(--col-song-w);   font-size: 17px; text-align: left !important; }
-.col-artist { width: var(--col-artist-w); font-size: 17px; text-align: left !important; }
-.col-year   { width: 88px;  text-align: center !important; font-size: 18px; }
-.col-change { width: 130px; text-align: center !important; font-size: 19px; }
+/* Ensure change cell colors override sticky background */
+.sticky-first-row td.col-change.chg-pos     { background: #1e7a46 !important; color: #fff !important; }
+.sticky-first-row td.col-change.chg-neg     { background: #8e1a1a !important; color: #fff !important; }
+.sticky-first-row td.col-change.chg-dash    { background: #000000 !important; color: #e5e7eb !important; }
+.sticky-first-row td.col-change.chg-debut   { background: #b08900 !important; color: #000 !important; }
+.sticky-first-row td.col-change.chg-reentry { background: #000000 !important; color: #f59e0b !important; }
 
-/* Top song font sizes (+7 each) */
-.sticky-first-row .col-rank   { font-size: 27px !important; }
-.sticky-first-row .col-song   { font-size: 27px !important; }
-.sticky-first-row .col-artist { font-size: 27px !important; }
-.sticky-first-row .col-year   { font-size: 29px !important; }
-.sticky-first-row .col-change { font-size: 21px !important; }
+/* Column widths and fonts — bumped again for readability */
+.col-rank   { width: 84px;  text-align: center !important; font-size: 22px; }
+.col-song   { width: var(--col-song-w);   font-size: 20px; text-align: left !important; }
+.col-artist { width: var(--col-artist-w); font-size: 20px; text-align: left !important; }
+.col-year   { width: 96px;  text-align: center !important; font-size: 22px; }
+.col-change { width: 140px; text-align: center !important; font-size: 23px; }
+
+/* Top song font sizes & gold treatment */
+.sticky-first-row .col-rank   { font-size: 32px !important; }
+.sticky-first-row .col-song   { font-size: 30px !important; }
+.sticky-first-row .col-artist { font-size: 30px !important; }
+.sticky-first-row .col-year   { font-size: 32px !important; }
+.sticky-first-row .col-change { font-size: 24px !important; }
 
 .gold-text { color: #f59e0b !important; }
 
+/* CHANGE color mapping (non-top rows) */
 .chg-pos     { background: #1e7a46; color: #ffffff; text-align:center !important; }
 .chg-neg     { background: #8e1a1a; color: #ffffff; text-align:center !important; }
 .chg-dash    { background: #000000; color: #e5e7eb; text-align:center !important; }
@@ -71,5 +78,5 @@
 .chg-reentry { background: #000000; color: #f59e0b; text-align:center !important; }
 
 @media (max-width: 640px){
-  .live-table { font-size: 14px; min-width: 720px; }
+  .live-table { font-size: 16px; min-width: 760px; }
 }
