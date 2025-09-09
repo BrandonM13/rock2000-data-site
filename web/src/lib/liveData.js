@@ -1,10 +1,10 @@
-// web/src/lib/liveData.js (v3e) — STRICT D column using rowsArray from gviz
+// web/src/lib/liveData.js (v3f) — STRICT: read A:D; CHANGE=D; bump cache key
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MASTER_LOG = "MASTER_LOG";
 
-const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12 hours
+const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12h
 
 function getCache(key){
   try{
@@ -25,14 +25,13 @@ export function norm(s){
 }
 
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3e`;
+  const ck = `yearRows_${targetYear}_v3f`; // bump to invalidate any old caches
   const cached = getCache(ck);
   if (cached) return cached;
 
-  const { rowsArray } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear) });
+  const { rowsArray } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
   const out = [];
   for (const arr of rowsArray){
-    // A=0 rank, B=1 song, C=2 artist, D=3 change (strict)
     const rank = Number(arr[0]);
     const song = arr[1];
     const artist = arr[2];
@@ -46,8 +45,8 @@ export async function loadYearRows(targetYear){
   return out;
 }
 
-// Release-year map unchanged (used only for display in YEAR column elsewhere)
 export async function loadReleaseYearMap(){
+  // unchanged; shown elsewhere only
   const ck = "releaseMap_v3e";
   const cached = getCache(ck);
   if (cached){
