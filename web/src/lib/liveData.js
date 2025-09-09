@@ -28,11 +28,11 @@ function normKey(s){
   return (s||"").toString().trim().toUpperCase();
 }
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3h`;
+  const ck = `yearRows_${targetYear}_v3j`;
   const cached = getCache(ck);
   if (cached) return cached;
 
-  const { rowsArrayF } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
+  const { rowsArrayF, rowsArrayV } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
 const debug = new URLSearchParams(location.search).has("debug");
 if (debug) {
   console.table(rowsArrayF.slice(0, 10).map(r => ({ A:r[0], B:r[1], C:r[2], D:r[3] })));
@@ -50,7 +50,10 @@ if (debug) {
     const rank = Number(arrF[0]);
     const song = arrF[1];
     const artist = arrF[2];
-    let change = arrF[3]; // EXACTLY what the sheet displays.
+    let change = arrF[3]; // prefer formatted text
+    if (change === null || change === undefined || (typeof change === "string" && change.trim() === "")) {
+      change = rowsArrayV[out.length]?.[3] ?? null; // fallback to raw value
+    }
     if (!rank || !song || !artist) continue;
     if (typeof change === "string") change = change.trim();
     out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
