@@ -1,5 +1,5 @@
 // web/src/lib/liveData.js — minimal, exact, no recomputation
-import { fetchGviz } from "./gviz";
+import { fetchGviz, fetchCsv } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MASTER_LOG = "MASTER_LOG";
@@ -23,7 +23,7 @@ function setCache(key, v){
 // RANK, SONG, ARTIST, CHANGE from the year sheet (displayed values).
 // YEAR is looked up separately via MASTER_LOG.
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_vFIX1`;
+  const ck = `yearRows_${targetYear}_vFIX2`;
   const cached = getCache(ck);
   if (cached) return cached;
 
@@ -32,6 +32,11 @@ export async function loadYearRows(targetYear){
     sheetName: String(targetYear),
     range: "A:D"
   });
+  // CSV fallback for CHANGE (D:D) to capture DEBUT / RE-ENTRY display text
+  let csvD = [];
+  try {
+    csvD = await fetchCsv({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "D:D" });
+  } catch {}
 
   const out = [];
   for (let i = 0; i < rowsArrayF.length; i++){
@@ -42,7 +47,7 @@ export async function loadYearRows(targetYear){
     const artist = String(arrF[2] ?? arrV[2] ?? "").trim();
     let change = arrF[3];
     if (change === null || change === undefined || (typeof change === "string" && change.trim() === "")){
-      change = arrV[3] ?? "";
+      change = arrV[3] ?? (csvD[i]?.[0] ?? "");
     }
     if (!Number.isFinite(rank) || !song || !artist) continue;
     out.push({ rank, song, artist, change, key: `${song}|${artist}` });
