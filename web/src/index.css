@@ -1,8 +1,6 @@
-/* web/src/index.css — Tailwind entry */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* web/src/index.css — Tailwind v4 entry */
+@import "tailwindcss";
 
-/* Optional small tweaks */
+/* app-level tweaks */
 html, body, #root { height: 100%; }
-body { background-color: #0a0a0a; }
+body { background: #0a0a0a; }
