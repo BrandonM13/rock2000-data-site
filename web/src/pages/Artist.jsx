@@ -1,7 +1,7 @@
 // web/src/pages/Artist.jsx (patched width)
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { loadArtistData, computeRowsForArtist, heatForRank, colorForChange } from "../lib/artistData";
+import { computeRowsForArtist, heatForRank, colorForChange } from "../lib/artistData";
 import HeatTable from "../components/HeatTable";
 
 export default function Artist() {
@@ -13,35 +13,47 @@ export default function Artist() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    loadArtistData()
-      .then(({ byArtistSong, years }) => {
-        if (!alive) return;
-        setYears(years);
-        if (artist) {
-          const { rows } = computeRowsForArtist(byArtistSong, artist, years);
-          const decorated = rows.map(r => ({
-            ...r,
-            _change: colorForChange(r.change),
-            _bestBg: heatForRank(r.best),
-            _avgBg: heatForRank(r.average),
-            _cellBg: r.cells.map(c => heatForRank(Number(c)))
-          }));
-          setRows(decorated);
-        } else {
-          setRows([]);
-        }
-        setLoading(false);
-      })
-      .catch(e => {
-        console.error(e);
-        setErr("Failed to load data.");
-        setLoading(false);
-      });
-    return () => { alive = false; };
-  }, [artist]);
+useEffect(() => {
+  let alive = true;
+  setLoading(true);
+  
+  const baseUrl = 'http://localhost:8000';
+  fetch(`${baseUrl}/artist-search?q=${artist}`)
+
+    .then((res) => res.json())
+    .then(({ byArtistSong, years }) => {
+      if (!alive) return;
+
+      setYears(years);
+
+      if (artist) {
+		const byArtistSongMap = new Map(Object.entries(byArtistSong));
+        const { rows } = computeRowsForArtist(byArtistSongMap, artist, years);
+        const decorated = rows.map(r => ({
+          ...r,
+          _change: colorForChange(r.change),
+          _bestBg: heatForRank(r.best),
+          _avgBg: heatForRank(r.average),
+          _cellBg: r.cells.map(c => heatForRank(Number(c)))
+        }));
+        setRows(decorated);
+      } else {
+        setRows([]);
+      }
+
+      setLoading(false);
+    })
+    .catch((e) => {
+      console.error(e);
+      setErr("Failed to load data.");
+      setLoading(false);
+    });
+
+  return () => {
+    alive = false;
+  };
+}, [artist]);
+
 
   function onSubmit(e) {
     e.preventDefault();

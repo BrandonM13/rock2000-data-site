@@ -20,43 +20,25 @@ function setCache(key, v){
   try{ sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); }catch{}
 }
 
-// RANK, SONG, ARTIST, CHANGE from the year sheet (displayed values).
-// YEAR is looked up separately via MASTER_LOG.
-export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_vFIX2`;
-  const cached = getCache(ck);
-  if (cached) return cached;
+export async function loadYearRows(year) {
+  const baseUrl = 'http://localhost:8000';
+  const res = await fetch(`${baseUrl}/live-countdown?year=${year}`);
+  const data = await res.json();
 
-  const { rowsArrayF, rowsArrayV } = await fetchGviz({
-    sheetId: SHEET_ID,
-    sheetName: String(targetYear),
-    range: "A:D"
-  });
-  // CSV fallback for CHANGE (D:D) to capture DEBUT / RE-ENTRY display text
-  let csvD = [];
-  try {
-    csvD = await fetchCsv({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "D:D" });
-  } catch {}
-
-  const out = [];
-  for (let i = 0; i < rowsArrayF.length; i++){
-    const arrF = rowsArrayF[i] || [];
-    const arrV = rowsArrayV[i] || [];
-    const rank = Number(arrV[0] ?? arrF[0]);
-    const song = String(arrF[1] ?? arrV[1] ?? "").trim();
-    const artist = String(arrF[2] ?? arrV[2] ?? "").trim();
-    let change = arrF[3];
-    if (change === null || change === undefined || (typeof change === "string" && change.trim() === "")){
-      change = arrV[3] ?? (csvD[i]?.[0] ?? "");
+  // Normalize keys + strip quotes
+  const rows = data.rows.map(row => {
+    const fixed = {};
+    for (const [k, v] of Object.entries(row)) {
+      const key = k.toLowerCase();
+      let value = typeof v === 'string' ? v.replace(/^"+|"+$/g, '') : v;
+      fixed[key] = value;
     }
-    if (!Number.isFinite(rank) || !song || !artist) continue;
-    out.push({ rank, song, artist, change, key: `${song}|${artist}` });
-  }
+    return fixed;
+  });
 
-  out.sort((a,b)=> a.rank - b.rank);
-  setCache(ck, out);
-  return out;
+  return rows; // ← remove filtering and just trust data
 }
+
 
 // Build a map: MASTER_LOG!C (key SONG|ARTIST) -> MASTER_LOG!I (YEAR)
 export async function loadReleaseYearMap(){

@@ -94,8 +94,11 @@ function computeChange(map, currentYear, previousYear){
 
 export function computeRowsForArtist(byArtistSong, artistQuery, years) {
   const a = norm(artistQuery);
-  const songsMap = byArtistSong.get(a);
+  let songsMap = byArtistSong.get(a) || byArtistSong[a];
   if (!songsMap) return { total: 0, rows: [] };
+
+  // Fix: ensure songsMap is a Map
+  songsMap = new Map(Object.entries(songsMap));
 
   const currentYear = years[0];
   const previousYear = years[1];
