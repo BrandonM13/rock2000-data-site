@@ -1,28 +1,32 @@
-// web/src/components/LiveTable.jsx (v2) — centered top row, font sizes, equal song/artist widths
+// web/src/components/LiveTable.jsx (v3) — larger fonts, canvas width measure, centered top row
 import React, { useEffect, useRef, useState } from "react";
 import "./live-table.css";
 
 export default function LiveTable({ rows }){
   const tableRef = useRef(null);
-  const [colW, setColW] = useState(0);
+  const [measured, setMeasured] = useState({ song: 0, artist: 0 });
 
+  // Measure Song/Artist widths using canvas (fast, no layout thrash)
   useEffect(() => {
     const el = tableRef.current;
     if (!el) return;
-    el.style.setProperty("--col-song-w", "auto");
-    el.style.setProperty("--col-artist-w", "auto");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    // body font for song/artist is 17px per spec (+7)
+    ctx.font = "17px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji'";
     let maxSong = 0, maxArtist = 0;
-    const songCells = el.querySelectorAll("td.col-song");
-    const artistCells = el.querySelectorAll("td.col-artist");
-    songCells.forEach(td => { maxSong = Math.max(maxSong, td.offsetWidth); });
-    artistCells.forEach(td => { maxArtist = Math.max(maxArtist, td.offsetWidth); });
-    const w = Math.max(maxSong, maxArtist);
-    if (w && Math.abs(w - colW) > 1) {
-      setColW(w);
+    for (const r of rows){
+      if (r.song)   maxSong   = Math.max(maxSong, ctx.measureText(r.song).width);
+      if (r.artist) maxArtist = Math.max(maxArtist, ctx.measureText(r.artist).width);
+    }
+    const pad = 32; // padding + borders
+    const w = Math.ceil(Math.max(maxSong, maxArtist) + pad);
+    if (w && (w !== measured.song || w !== measured.artist)){
       el.style.setProperty("--col-song-w", w + "px");
       el.style.setProperty("--col-artist-w", w + "px");
+      setMeasured({ song: w, artist: w });
     }
-  }, [rows, colW]);
+  }, [rows]);
 
   return (
     <div className="live-wrap">
@@ -40,13 +44,12 @@ export default function LiveTable({ rows }){
           <tbody>
             {rows.map((r, idx) => {
               const isTop = idx === 0;
-              const change = r.change;
+              const n = Number(r.change);
               let changeClass = "chg-neutral";
-              const n = Number(change);
-              if (change === "-") changeClass = "chg-dash";
+              if (r.change === "-") changeClass = "chg-dash";
               else if (!Number.isNaN(n)) changeClass = n > 0 ? "chg-pos" : "chg-neg";
-              else if (change === "DEBUT") changeClass = "chg-debut";
-              else if (change === "RE-ENTRY") changeClass = "chg-reentry";
+              else if (String(r.change).toUpperCase() === "DEBUT") changeClass = "chg-debut";
+              else if (String(r.change).toUpperCase() === "RE-ENTRY") changeClass = "chg-reentry";
 
               return (
                 <tr key={r.key + idx} className={isTop ? "sticky-first-row center-all" : ""}>
@@ -54,7 +57,7 @@ export default function LiveTable({ rows }){
                   <td className={"col-song" + (isTop ? " gold-text" : "")} title={r.song}>{r.song}</td>
                   <td className={"col-artist" + (isTop ? " gold-text" : "")} title={r.artist}>{r.artist}</td>
                   <td className="col-year">{r.releaseYear ?? ""}</td>
-                  <td className={`col-change ${changeClass}`}>{String(change)}</td>
+                  <td className={`col-change ${changeClass}`}>{String(r.change)}</td>
                 </tr>
               );
             })}

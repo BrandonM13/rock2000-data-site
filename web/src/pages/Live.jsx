@@ -1,4 +1,4 @@
-// web/src/pages/Live.jsx (v2) — uses per-year tabs and precomputed change
+// web/src/pages/Live.jsx (v3) — speed tweaks + fallback change fix
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { loadYearRows, loadReleaseYearMap } from "../lib/liveData";
@@ -21,6 +21,7 @@ export default function Live(){
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // Preload release map (cached in sessionStorage)
   useEffect(() => {
     let alive = true;
     loadReleaseYearMap().then(map => { if (alive) setReleaseMap(map); })
@@ -28,18 +29,40 @@ export default function Live(){
     return () => { alive = false; };
   }, []);
 
+  // Load the selected year and fill missing change values if needed
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    loadYearRows(year).then(rows => {
-      if (!alive) return;
-      const mapped = rows.map(r => ({ ...r, releaseYear: releaseMap.get(r.key) ?? "" }));
-      setRows(mapped);
-      setLoading(false);
-    }).catch(e => {
-      console.error(e);
-      if (alive) { setErr("Failed to load year data."); setLoading(false); }
-    });
+    (async () => {
+      try {
+        const curRows = await loadYearRows(year);
+        // Assign release year immediately if available
+        const withRelease = curRows.map(r => ({ ...r, releaseYear: releaseMap.get(r.key) ?? "" }));
+        const needFix = withRelease.some(r => r.change == null || r.change === "");
+        if (!needFix){
+          if (alive){ setRows(withRelease); setLoading(false); }
+          return;
+        }
+        // Fallback: fetch previous year once and compute missing changes
+        const prevRows = await loadYearRows(year - 1);
+        const prevIdx = new Map(prevRows.map(r => [r.key, r.rank]));
+        const fixed = withRelease.map(r => {
+          if (r.change != null && r.change !== "") return r;
+          if (prevIdx.has(r.key)) {
+            const diff = prevIdx.get(r.key) - r.rank;
+            return { ...r, change: diff === 0 ? "-" : diff };
+          }
+          // If we know release year and it's the current year, mark DEBUT; else RE-ENTRY
+          const rel = r.releaseYear;
+          const label = (rel && Number(rel) === Number(year)) ? "DEBUT" : "RE-ENTRY";
+          return { ...r, change: label };
+        });
+        if (alive){ setRows(fixed); setLoading(false); }
+      } catch (e){
+        console.error(e);
+        if (alive){ setErr("Failed to load year data."); setLoading(false); }
+      }
+    })();
     return () => { alive = false; };
   }, [year, releaseMap]);
 

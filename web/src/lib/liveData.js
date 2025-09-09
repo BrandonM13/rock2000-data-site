@@ -1,8 +1,24 @@
-// web/src/lib/liveData.js (v2) — per-year tabs, precomputed CHANGE
+// web/src/lib/liveData.js (v3) — per-year tabs, caching, precomputed CHANGE
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MASTER_LOG = "MASTER_LOG";
+
+const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12 hours
+
+function getCache(key){
+  try{
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj || !obj.t || !obj.v) return null;
+    if (Date.now() - obj.t > CACHE_TTL_MS) return null;
+    return obj.v;
+  }catch{ return null; }
+}
+function setCache(key, v){
+  try{ sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); }catch{}
+}
 
 export function norm(s){
   return (s ?? "").toString().normalize("NFKD").toUpperCase().replace(/&/g,"AND").replace(/['\"`]/g,"").replace(/\s+/g," ").trim();
@@ -23,6 +39,7 @@ const HDR_YEAR = {
   song:   ["song","songs","title","song_title","all_caps_title","title (song)"],
   artist: ["artist","artists","artist_name","all_caps_artist","artist (band)"],
   change: ["change","delta","movement"],
+  status: ["status","state","type","debut/re-entry","debut re-entry","debut_reentry","change text","change_text"],
 };
 
 const HDR_LOG = {
@@ -31,6 +48,10 @@ const HDR_LOG = {
 };
 
 export async function loadYearRows(targetYear){
+  const ck = `yearRows_${targetYear}_v3`;
+  const cached = getCache(ck);
+  if (cached) return cached;
+
   const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear) });
   const out = [];
   for (const r of rows){
@@ -38,20 +59,31 @@ export async function loadYearRows(targetYear){
     const song = valueFor(r, HDR_YEAR.song);
     const artist = valueFor(r, HDR_YEAR.artist);
     let change = valueFor(r, HDR_YEAR.change);
+    const status = valueFor(r, HDR_YEAR.status);
     if (!rank || !song || !artist) continue;
+    // prefer the numeric change if present; else use status text (DEBUT/RE-ENTRY)
     const num = Number(change);
     if (!Number.isNaN(num) && change !== "" && change !== null) change = num;
+    else if (status != null && status !== "") change = String(status).toUpperCase();
     out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
   }
   out.sort((a,b)=> a.rank - b.rank);
+  setCache(ck, out);
   return out;
 }
 
 export async function loadReleaseYearMap(){
+  const ck = "releaseMap_v3";
+  const cached = getCache(ck);
+  if (cached){
+    const m = new Map(Object.entries(cached).map(([k,v]) => [k, v]));
+    return m;
+  }
+
   const { rows } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MASTER_LOG });
   const map = new Map();
   for (const r of rows){
-    let key = valueFor(r, HDR_LOG.key);
+    let key = valueFor(r, ["key","c","song|artist","song_artist_key"]);
     if (!key){
       const cols = Object.keys(r);
       if (cols.length >= 3) key = r[cols[2]];
@@ -66,5 +98,8 @@ export async function loadReleaseYearMap(){
     const yr = Number(rel) || null;
     if (!map.has(k)) map.set(k, yr);
   }
+  // stash as plain object
+  const obj = {}; map.forEach((v,k)=> obj[k]=v);
+  setCache(ck, obj);
   return map;
 }

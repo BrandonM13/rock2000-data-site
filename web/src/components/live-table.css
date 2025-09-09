@@ -1,4 +1,4 @@
-/* web/src/components/live-table.css (v2) */
+/* web/src/components/live-table.css (v3) — +7px fonts */
 .live-wrap { background: transparent; }
 .live-scroll {
   overflow: auto;
@@ -13,7 +13,7 @@
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  min-width: 780px;
+  min-width: 880px;
   font-size: 14px;
   color: #e5e7eb;
   --col-song-w: auto;
@@ -21,24 +21,24 @@
 }
 .live-table th, .live-table td {
   border: 1px solid #27272a;
-  padding: 8px 10px;
+  padding: 10px 14px;  /* a bit more room for bigger fonts */
   white-space: nowrap;
   background-clip: padding-box;
 }
 
-/* Header centered & size 12 */
+/* Header centered & size 12+7 = 19 */
 .live-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
   text-align: center;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 19px;
   letter-spacing: .02em;
   height: var(--hdr-h, 42px);
 }
 
-/* Sticky rank-1 row centered */
+/* Sticky rank-1 row centered; larger fonts */
 .sticky-first-row td {
   position: sticky;
   top: var(--hdr-h, 42px);
@@ -48,19 +48,19 @@
 }
 .center-all td { text-align: center !important; }
 
-/* Column widths and fonts */
-.col-rank   { width: 64px;  text-align: center !important; font-size: 11px; }
-.col-song   { width: var(--col-song-w);   font-size: 10px; text-align: left !important; }
-.col-artist { width: var(--col-artist-w); font-size: 10px; text-align: left !important; }
-.col-year   { width: 80px;  text-align: center !important; font-size: 11px; }
-.col-change { width: 110px; text-align: center !important; font-size: 12px; }
+/* Column widths and fonts (+7 each) */
+.col-rank   { width: 72px;  text-align: center !important; font-size: 18px; }
+.col-song   { width: var(--col-song-w);   font-size: 17px; text-align: left !important; }
+.col-artist { width: var(--col-artist-w); font-size: 17px; text-align: left !important; }
+.col-year   { width: 88px;  text-align: center !important; font-size: 18px; }
+.col-change { width: 130px; text-align: center !important; font-size: 19px; }
 
-/* Top song font sizes */
-.sticky-first-row .col-rank   { font-size: 20px !important; }
-.sticky-first-row .col-song   { font-size: 20px !important; }
-.sticky-first-row .col-artist { font-size: 20px !important; }
-.sticky-first-row .col-year   { font-size: 22px !important; }
-.sticky-first-row .col-change { font-size: 14px !important; }
+/* Top song font sizes (+7 each) */
+.sticky-first-row .col-rank   { font-size: 27px !important; }
+.sticky-first-row .col-song   { font-size: 27px !important; }
+.sticky-first-row .col-artist { font-size: 27px !important; }
+.sticky-first-row .col-year   { font-size: 29px !important; }
+.sticky-first-row .col-change { font-size: 21px !important; }
 
 .gold-text { color: #f59e0b !important; }
 
@@ -71,5 +71,5 @@
 .chg-reentry { background: #000000; color: #f59e0b; text-align:center !important; }
 
 @media (max-width: 640px){
-  .live-table { font-size: 12px; min-width: 650px; }
+  .live-table { font-size: 14px; min-width: 720px; }
 }
