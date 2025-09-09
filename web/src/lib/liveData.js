@@ -1,10 +1,10 @@
-// web/src/lib/liveData.js (v3f) — STRICT: read A:D; CHANGE=D; bump cache key
+// web/src/lib/liveData.js (v3g) — CHANGE uses formatted text in column D exactly as sheet shows
 import { fetchGviz } from "./gviz";
 
 export const SHEET_ID = "1xlSqIR-ZjTaZB5Ghn4UmoryKxdcjyvFUKfCqI299fnE";
 export const TAB_MASTER_LOG = "MASTER_LOG";
 
-const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12h
+const CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 
 function getCache(key){
   try{
@@ -25,17 +25,17 @@ export function norm(s){
 }
 
 export async function loadYearRows(targetYear){
-  const ck = `yearRows_${targetYear}_v3f`; // bump to invalidate any old caches
+  const ck = `yearRows_${targetYear}_v3g`;
   const cached = getCache(ck);
   if (cached) return cached;
 
-  const { rowsArray } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
+  const { rowsArrayF } = await fetchGviz({ sheetId: SHEET_ID, sheetName: String(targetYear), range: "A:D" });
   const out = [];
-  for (const arr of rowsArray){
-    const rank = Number(arr[0]);
-    const song = arr[1];
-    const artist = arr[2];
-    let change = arr[3];
+  for (const arrF of rowsArrayF){
+    const rank = Number(arrF[0]);
+    const song = arrF[1];
+    const artist = arrF[2];
+    let change = arrF[3]; // EXACTLY what the sheet displays.
     if (!rank || !song || !artist) continue;
     if (typeof change === "string") change = change.trim();
     out.push({ rank, song, artist, change, key: `${norm(song)}|${norm(artist)}` });
@@ -46,16 +46,17 @@ export async function loadYearRows(targetYear){
 }
 
 export async function loadReleaseYearMap(){
-  // unchanged; shown elsewhere only
+  // unchanged; we still use sheet values for display elsewhere
   const ck = "releaseMap_v3e";
   const cached = getCache(ck);
   if (cached){
     const m = new Map(Object.entries(cached).map(([k,v]) => [k, v]));
     return m;
   }
-  const { rowsArray } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MASTER_LOG });
+  // Use full GViz (no custom range) for master log
+  const { rowsArrayF } = await fetchGviz({ sheetId: SHEET_ID, sheetName: TAB_MASTER_LOG });
   const map = new Map();
-  for (const arr of rowsArray){
+  for (const arr of rowsArrayF){
     const key = arr[2] ? String(arr[2]) : "";
     const yr  = Number(arr[8]);
     if (!key) continue;

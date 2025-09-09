@@ -1,4 +1,4 @@
-// web/src/lib/gviz.js (v3f) — returns headers, rowsArray (column-ordered)
+// web/src/lib/gviz.js (v3g) — expose both value and formatted arrays
 export async function fetchGviz({ sheetId, sheetName, range = "A:D", tq = "" }){
   const params = new URLSearchParams();
   if (sheetName) params.set("sheet", sheetName);
@@ -14,13 +14,24 @@ export async function fetchGviz({ sheetId, sheetName, range = "A:D", tq = "" }){
   const payload = JSON.parse(m[1]);
   const table = payload.table;
   const headers = (table.cols || []).map((c, i) => c?.label ?? c?.id ?? `COL${i}`);
-  const rowsArray = (table.rows || []).map(r => {
+
+  const rowsArrayV = (table.rows || []).map(r => {
     const cells = r.c || [];
     return headers.map((_, i) => {
       const cell = cells[i];
       if (!cell) return null;
-      return (cell.v !== undefined && cell.v !== null) ? cell.v : (cell.f !== undefined ? cell.f : null);
+      return (cell.v !== undefined && cell.v !== null) ? cell.v : null;
     });
   });
-  return { headers, rowsArray };
+  const rowsArrayF = (table.rows || []).map(r => {
+    const cells = r.c || [];
+    return headers.map((_, i) => {
+      const cell = cells[i];
+      if (!cell) return null;
+      // Prefer formatted display text; fallback to value if not present.
+      return (cell.f !== undefined && cell.f !== null) ? cell.f : (cell.v !== undefined ? cell.v : null);
+    });
+  });
+
+  return { headers, rowsArrayV, rowsArrayF };
 }
