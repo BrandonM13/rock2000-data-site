@@ -38,7 +38,6 @@ export default function Live(){
         const curRows = await loadYearRows(year);
         const withRelease = curRows.map(r => ({ ...r, releaseYear: releaseMap.get(r.keyExact) ?? "" }));
         if (alive) setRows(withRelease);
-        const withRelease = curRows.map(r => ({ ...r, releaseYear: releaseMap.get(r.keyExact) ?? "" }));
         if (alive) setRows(withRelease);
       } catch (e){
         console.error(e);
