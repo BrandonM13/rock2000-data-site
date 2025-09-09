@@ -1,23 +1,79 @@
-// web/src/lib/gviz.js
-// Minimal Google Sheets GViz helper
-export function gvizUrl({ sheetId, sheetName, tq = "select *" }) {
-  const base = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq`;
-  const params = new URLSearchParams({ tq, tqx: "out:json", sheet: sheetName });
-  return `${base}?${params.toString()}`;
+// web/src/lib/gviz.js (v3g) — expose both value and formatted arrays
+export async function fetchGviz({ sheetId, sheetName, range = "A:D", tq = "" }){
+  const params = new URLSearchParams();
+  if (sheetName) params.set("sheet", sheetName);
+  if (range) params.set("range", range);
+  if (tq) params.set("tq", tq);
+  params.set("tqx", "out:json");
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${params.toString()}`;
+
+  const res = await fetch(url, { cache: "no-store" });
+  const text = await res.text();
+  const m = text.match(/google\.visualization\.Query\.setResponse\((([\s\S]+))\);/);
+  if (!m) throw new Error("GViz: failed to parse");
+  const payload = JSON.parse(m[1]);
+  const table = payload.table;
+  const headers = (table.cols || []).map((c, i) => c?.label ?? c?.id ?? `COL${i}`);
+
+  const rowsArrayV = (table.rows || []).map(r => {
+    const cells = r.c || [];
+    return headers.map((_, i) => {
+      const cell = cells[i];
+      if (!cell) return null;
+      return (cell.v !== undefined && cell.v !== null) ? cell.v : null;
+    });
+  });
+  const rowsArrayF = (table.rows || []).map(r => {
+    const cells = r.c || [];
+    return headers.map((_, i) => {
+      const cell = cells[i];
+      if (!cell) return null;
+      // Prefer formatted display text; fallback to value if not present.
+      return (cell.f !== undefined && cell.f !== null) ? cell.f : (cell.v !== undefined ? cell.v : null);
+    });
+  });
+
+  return { headers, rowsArrayV, rowsArrayF };
 }
 
-export async function fetchGviz({ sheetId, sheetName, tq = "select *" }) {
-  const res = await fetch(gvizUrl({ sheetId, sheetName, tq }), { mode: "cors" });
+
+/**
+ * Minimal CSV fetcher for Google Sheets GViz endpoint.
+ * Returns array-of-arrays of displayed text for the requested range.
+ */
+export async function fetchCsv({ sheetId, sheetName, range = "A:D" }){
+  const params = new URLSearchParams();
+  if (sheetName) params.set("sheet", sheetName);
+  if (range) params.set("range", range);
+  params.set("tqx", "out:csv");
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${params.toString()}`;
+
+  const res = await fetch(url, { cache: "no-store" });
   const text = await res.text();
-  const start = text.indexOf("(");
-  const end = text.lastIndexOf(")");
-  const json = JSON.parse(text.slice(start + 1, end));
-  const table = json.table;
-  const headers = table.cols.map((c, i) => (c.label || c.id || `COL${i+1}`));
-  const rows = table.rows.map((r) => {
-    const obj = {};
-    r.c.forEach((cell, i) => { obj[headers[i]] = cell ? cell.v : null; });
-    return obj;
-  });
-  return { headers, rows };
+
+  // Simple CSV parser that handles quoted fields containing commas.
+  const rows = [];
+  let i = 0, cur = [], field = "", inQuotes = false;
+  function pushField(){ cur.push(field); field = ""; }
+  function pushRow(){ rows.push(cur); cur = []; }
+  while (i < text.length){
+    const ch = text[i++];
+    if (inQuotes){
+      if (ch === '"'){
+        if (text[i] === '"'){ field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"'){ inQuotes = true; }
+      else if (ch === ','){ pushField(); }
+      else if (ch === '\r'){ /* ignore */ }
+      else if (ch === '\n'){ pushField(); pushRow(); }
+      else { field += ch; }
+    }
+  }
+  // Final field/row if file didn't end with newline
+  if (field.length > 0 || cur.length){ pushField(); pushRow(); }
+  return rows;
 }
