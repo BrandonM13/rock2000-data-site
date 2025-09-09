@@ -1,4 +1,4 @@
-/* web/src/components/live-table.css */
+/* web/src/components/live-table.css (v2) */
 .live-wrap { background: transparent; }
 .live-scroll {
   overflow: auto;
@@ -8,30 +8,37 @@
   background: #0b0b0b;
 }
 .live-table thead th { background-color: #0e0e0e !important; }
+
 .live-table {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  min-width: 720px;
+  min-width: 780px;
   font-size: 14px;
   color: #e5e7eb;
+  --col-song-w: auto;
+  --col-artist-w: auto;
 }
 .live-table th, .live-table td {
   border: 1px solid #27272a;
   padding: 8px 10px;
   white-space: nowrap;
   background-clip: padding-box;
-  text-align: left;
 }
+
+/* Header centered & size 12 */
 .live-table thead th {
   position: sticky;
   top: 0;
   z-index: 3;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
+  font-size: 12px;
   letter-spacing: .02em;
   height: var(--hdr-h, 42px);
 }
+
+/* Sticky rank-1 row centered */
 .sticky-first-row td {
   position: sticky;
   top: var(--hdr-h, 42px);
@@ -39,18 +46,30 @@
   background: #111;
   box-shadow: 0 1px 0 #27272a;
 }
-.col-rank   { width: 64px;  text-align: center !important; }
-.col-song   { min-width: 240px; }
-.col-artist { min-width: 200px; }
-.col-year   { width: 80px; text-align: center !important; }
-.col-change { width: 110px; text-align: center !important; }
+.center-all td { text-align: center !important; }
+
+/* Column widths and fonts */
+.col-rank   { width: 64px;  text-align: center !important; font-size: 11px; }
+.col-song   { width: var(--col-song-w);   font-size: 10px; text-align: left !important; }
+.col-artist { width: var(--col-artist-w); font-size: 10px; text-align: left !important; }
+.col-year   { width: 80px;  text-align: center !important; font-size: 11px; }
+.col-change { width: 110px; text-align: center !important; font-size: 12px; }
+
+/* Top song font sizes */
+.sticky-first-row .col-rank   { font-size: 20px !important; }
+.sticky-first-row .col-song   { font-size: 20px !important; }
+.sticky-first-row .col-artist { font-size: 20px !important; }
+.sticky-first-row .col-year   { font-size: 22px !important; }
+.sticky-first-row .col-change { font-size: 14px !important; }
+
 .gold-text { color: #f59e0b !important; }
+
 .chg-pos     { background: #1e7a46; color: #ffffff; text-align:center !important; }
 .chg-neg     { background: #8e1a1a; color: #ffffff; text-align:center !important; }
 .chg-dash    { background: #000000; color: #e5e7eb; text-align:center !important; }
 .chg-debut   { background: #b08900; color: #000000; text-align:center !important; }
 .chg-reentry { background: #000000; color: #f59e0b; text-align:center !important; }
+
 @media (max-width: 640px){
-  .live-table { font-size: 12px; min-width: 600px; }
-  .col-song { min-width: 180px; white-space: normal; line-height: 1.15; }
+  .live-table { font-size: 12px; min-width: 650px; }
 }

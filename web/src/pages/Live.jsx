@@ -1,50 +1,47 @@
-// web/src/pages/Live.jsx
+// web/src/pages/Live.jsx (v2) — uses per-year tabs and precomputed change
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { loadYearIndex, loadReleaseYearMap, computeLiveRows } from "../lib/liveData";
+import { loadYearRows, loadReleaseYearMap } from "../lib/liveData";
 import LiveTable from "../components/LiveTable";
 
 const YEAR_MIN = 2002;
 const YEAR_MAX_DEFAULT = 2025;
 
+function yearsRange(max, min){
+  const arr = [];
+  for (let y = max; y >= min; y--) arr.push(y);
+  return arr;
+}
+
 export default function Live(){
-  const [years, setYears] = useState([]);
-  const [byYear, setByYear] = useState(new Map());
-  const [releaseMap, setReleaseMap] = useState(new Map());
+  const [years] = useState(yearsRange(YEAR_MAX_DEFAULT, YEAR_MIN));
   const [year, setYear] = useState(YEAR_MAX_DEFAULT);
+  const [releaseMap, setReleaseMap] = useState(new Map());
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      try {
-        const [{ byYear, years }, rel] = await Promise.all([
-          loadYearIndex(),
-          loadReleaseYearMap()
-        ]);
-        if (!alive) return;
-        setByYear(byYear);
-        setYears(years.filter(y => y >= YEAR_MIN));
-        setReleaseMap(rel);
-        const defaultYear = years[0] || YEAR_MAX_DEFAULT;
-        setYear(defaultYear);
-      } catch (e){
-        console.error(e);
-        if (alive) setErr("Failed to load data.");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
+    loadReleaseYearMap().then(map => { if (alive) setReleaseMap(map); })
+      .catch(e => { console.error(e); if (alive) setErr("Failed to load release years."); });
     return () => { alive = false; };
   }, []);
 
   useEffect(() => {
-    if (!years.length || !byYear.size) return;
-    const computed = computeLiveRows(year, byYear, years, releaseMap);
-    setRows(computed);
-  }, [year, years, byYear, releaseMap]);
+    let alive = true;
+    setLoading(true);
+    loadYearRows(year).then(rows => {
+      if (!alive) return;
+      const mapped = rows.map(r => ({ ...r, releaseYear: releaseMap.get(r.key) ?? "" }));
+      setRows(mapped);
+      setLoading(false);
+    }).catch(e => {
+      console.error(e);
+      if (alive) { setErr("Failed to load year data."); setLoading(false); }
+    });
+    return () => { alive = false; };
+  }, [year, releaseMap]);
 
   return (
     <div className="min-h-screen w-full bg-neutral-900 text-neutral-100">
@@ -60,14 +57,12 @@ export default function Live(){
             value={year}
             onChange={(e)=>setYear(Number(e.target.value))}
           >
-            {years.filter(y => y >= YEAR_MIN).map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
       </header>
 
-      <main className="mx-auto max-w/[1400px] w-[95%] px-2 md:px-6 pb-16">
+      <main className="mx-auto max-w-[1400px] w-[95%] px-2 md:px-6 pb-16">
         <div className="rounded-2xl bg-neutral-800/60 border border-neutral-700 p-3 md:p-4 shadow-lg">
           {err && <div className="text-red-400 text-sm mb-3">{err}</div>}
           <LiveTable rows={rows} />
